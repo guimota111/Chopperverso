@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChopperVerso · Produção Lara</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ HEADER ══════════════════════════════ -->
+<header class="header">
+  <div class="logo">
+    <!-- Chopper's iconic hat SVG -->
+    <svg class="logo-hat" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
+      <!-- Reindeer ears -->
+      <path d="M22 52 Q14 28 22 10 Q30 28 28 52" fill="#6d3a1e"/>
+      <path d="M78 52 Q86 28 78 10 Q70 28 72 52" fill="#6d3a1e"/>
+      <path d="M23 50 Q16 30 23 14 Q29 30 27 50" fill="#e8957a"/>
+      <path d="M77 50 Q84 30 77 14 Q71 30 73 50" fill="#e8957a"/>
+      <!-- Hat dome -->
+      <path d="M18 56 Q18 14 50 9 Q82 14 82 56 Z" fill="#c62828"/>
+      <!-- Hat brim -->
+      <rect x="8" y="56" width="84" height="16" rx="8" fill="#b71c1c"/>
+      <!-- White cross - vertical -->
+      <rect x="46" y="20" width="8" height="30" fill="white" rx="4"/>
+      <!-- White cross - horizontal -->
+      <rect x="36" y="30" width="28" height="10" fill="white" rx="5"/>
+    </svg>
+    <div class="logo-text">
+      <h1>ChopperVerso</h1>
+      <p>Produção · Lara</p>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn active" data-tab="inserir">
+      <span class="icon">✏️</span> Inserir
+    </button>
+    <button class="nav-btn" data-tab="registros">
+      <span class="icon">📋</span> Registros
+    </button>
+    <button class="nav-btn" data-tab="graficos">
+      <span class="icon">📊</span> Gráficos
+    </button>
+    <button class="nav-btn" data-tab="congelacoes">
+      <span class="icon">🧊</span> Congelações
+    </button>
+  </nav>
+
+  <div class="header-actions">
+    <button class="icon-btn" id="btn-open-io" title="Exportar / Importar dados">💾</button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════ STATS BAR ═══════════════════════════ -->
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="stat-icon">🌅</div>
+    <div class="stat-info">
+      <div class="stat-label">Hoje</div>
+      <div class="stat-values">
+        <span class="stat-val primary" id="s-today-casos">–</span>
+        <span class="stat-meta">casos</span>
+        <span class="stat-val" id="s-today-lam">–</span>
+        <span class="stat-meta">lâm</span>
+        <span class="stat-val accent" id="s-today-pts">–</span>
+        <span class="stat-meta">pts</span>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📅</div>
+    <div class="stat-info">
+      <div class="stat-label">Esta Semana</div>
+      <div class="stat-values">
+        <span class="stat-val primary" id="s-week-casos">–</span>
+        <span class="stat-meta">casos</span>
+        <span class="stat-val" id="s-week-lam">–</span>
+        <span class="stat-meta">lâm</span>
+        <span class="stat-val accent" id="s-week-pts">–</span>
+        <span class="stat-meta">pts</span>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🗓️</div>
+    <div class="stat-info">
+      <div class="stat-label">Este Mês</div>
+      <div class="stat-values">
+        <span class="stat-val primary" id="s-month-casos">–</span>
+        <span class="stat-meta">casos</span>
+        <span class="stat-val" id="s-month-lam">–</span>
+        <span class="stat-meta">lâm</span>
+        <span class="stat-val accent" id="s-month-pts">–</span>
+        <span class="stat-meta">pts</span>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🏆</div>
+    <div class="stat-info">
+      <div class="stat-label">Este Ano</div>
+      <div class="stat-values">
+        <span class="stat-val primary" id="s-year-casos">–</span>
+        <span class="stat-meta">casos</span>
+        <span class="stat-val" id="s-year-lam">–</span>
+        <span class="stat-meta">lâm</span>
+        <span class="stat-val accent" id="s-year-pts">–</span>
+        <span class="stat-meta">pts</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ MAIN ════════════════════════════════ -->
+<main class="main">
+
+  <!-- ──────────────────────── TAB: INSERIR ──────────────────────────────── -->
+  <section id="tab-inserir" class="tab-section active">
+    <div class="grid-2">
+
+      <!-- Form -->
+      <div class="card">
+        <div class="card-title">📝 Nova Entrada</div>
+        <form id="entry-form" class="form-grid" autocomplete="off">
+
+          <div class="field">
+            <label>FAP</label>
+            <input type="text" id="f-fap" placeholder="ex: 9703.0370.3425" required>
+          </div>
+
+          <div class="field">
+            <label>Data</label>
+            <input type="date" id="f-data" required>
+          </div>
+
+          <div class="field">
+            <label>Tipo(s)</label>
+            <div class="tipo-select" id="tipo-select">
+              <div class="tipo-trigger" id="tipo-trigger" tabindex="0">
+                <span class="tipo-placeholder" id="tipo-placeholder">Selecionar tipos…</span>
+                <span class="tipo-trigger-arrow">▾</span>
+              </div>
+              <div class="tipo-dropdown" id="tipo-dropdown"></div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field">
+              <label>Lâminas</label>
+              <input type="number" id="f-laminas" placeholder="0" min="0" required>
+            </div>
+            <div class="field">
+              <label>Pontos</label>
+              <input type="number" id="f-pontos" placeholder="0" min="0" required>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary">➕ Inserir Entrada</button>
+        </form>
+      </div>
+
+      <!-- Today -->
+      <div class="card">
+        <div class="card-title">
+          🌅 Hoje
+          <span id="today-date-label" style="font-weight:500;color:var(--text-3);font-size:0.8rem"></span>
+        </div>
+        <div id="today-summary" class="period-summary" style="margin-bottom:0.75rem">
+          <div class="ps-card"><div class="ps-val c1" id="td-casos">0</div><div class="ps-lbl">Casos</div></div>
+          <div class="ps-card"><div class="ps-val c2" id="td-lam">0</div><div class="ps-lbl">Lâminas</div></div>
+          <div class="ps-card"><div class="ps-val c3" id="td-pts">0</div><div class="ps-lbl">Pontos</div></div>
+        </div>
+        <div id="today-list">
+          <div class="empty-state"><div class="empty-icon">🔬</div><p>Nenhuma entrada hoje ainda.</p></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ──────────────────────── TAB: REGISTROS ────────────────────────────── -->
+  <section id="tab-registros" class="tab-section">
+
+    <div class="period-bar">
+      <button class="period-btn active" data-period="week">Esta Semana</button>
+      <button class="period-btn" data-period="month">Este Mês</button>
+      <button class="period-btn" data-period="year">Este Ano</button>
+      <button class="period-btn" data-period="all">Total</button>
+    </div>
+
+    <div class="card">
+      <div class="period-summary" id="reg-summary">
+        <div class="ps-card"><div class="ps-val c1" id="reg-casos">0</div><div class="ps-lbl">Casos</div></div>
+        <div class="ps-card"><div class="ps-val c2" id="reg-lam">0</div><div class="ps-lbl">Lâminas</div></div>
+        <div class="ps-card"><div class="ps-val c3" id="reg-pts">0</div><div class="ps-lbl">Pontos</div></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>FAP</th>
+              <th>Data</th>
+              <th>Tipo(s)</th>
+              <th style="text-align:right">Lâminas</th>
+              <th style="text-align:right">Pontos</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="reg-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-3)">Sem registros neste período.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ──────────────────────── TAB: GRÁFICOS ─────────────────────────────── -->
+  <section id="tab-graficos" class="tab-section">
+
+    <div class="period-bar" id="chart-period-bar">
+      <button class="period-btn active" data-period="week">Esta Semana</button>
+      <button class="period-btn" data-period="month">Este Mês</button>
+      <button class="period-btn" data-period="year">Este Ano</button>
+      <button class="period-btn" data-period="all">Total</button>
+    </div>
+
+    <!-- Summary cards for chart period -->
+    <div class="period-summary" id="chart-summary">
+      <div class="ps-card"><div class="ps-val c1" id="ch-casos">0</div><div class="ps-lbl">Casos</div></div>
+      <div class="ps-card"><div class="ps-val c2" id="ch-lam">0</div><div class="ps-lbl">Lâminas</div></div>
+      <div class="ps-card"><div class="ps-val c3" id="ch-pts">0</div><div class="ps-lbl">Pontos</div></div>
+    </div>
+
+    <div class="charts-grid">
+
+      <!-- Daily production (span full width) -->
+      <div class="chart-card span-2">
+        <div class="chart-card-title">
+          📈 Produção por Dia
+          <div class="chart-controls">
+            <button class="chart-toggle active-lam" id="tog-lam">🔵 Lâminas</button>
+            <button class="chart-toggle active-pts" id="tog-pts">🔴 Pontos</button>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:240px">
+          <canvas id="chart-daily"></canvas>
+        </div>
+      </div>
+
+      <!-- Type distribution donut -->
+      <div class="chart-card">
+        <div class="chart-card-title">🥧 Distribuição por Tipo</div>
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="chart-tipos"></canvas>
+        </div>
+      </div>
+
+      <!-- Lâminas per type horizontal bar -->
+      <div class="chart-card">
+        <div class="chart-card-title">
+          📏 Lâminas por Tipo
+          <div class="chart-controls">
+            <button class="chart-toggle" id="tipo-metric-lam" style="background:var(--blue-l);border-color:var(--blue-l);color:#fff">Lâminas</button>
+            <button class="chart-toggle" id="tipo-metric-pts">Pontos</button>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="chart-tipo-bar"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ──────────────────────── TAB: CONGELAÇÕES ──────────────────────────── -->
+  <section id="tab-congelacoes" class="tab-section">
+    <div class="grid-2">
+
+      <!-- Form -->
+      <div class="card">
+        <div class="card-title">🧊 Registrar Congelação</div>
+        <form id="cong-form" class="form-grid">
+          <div class="field">
+            <label>Descrição / Caso</label>
+            <input type="text" id="cong-name" placeholder="ex: congelação mama" required>
+          </div>
+          <div class="field">
+            <label>Data</label>
+            <input type="date" id="cong-data" required>
+          </div>
+          <button type="submit" class="btn btn-primary">🧊 Registrar</button>
+        </form>
+      </div>
+
+      <!-- List -->
+      <div class="card">
+        <div class="card-title">📋 Congelações Registradas</div>
+        <div class="cong-counter">
+          <div class="cong-num" id="cong-total">0</div>
+          <div class="cong-label">congelações<br>no total</div>
+        </div>
+        <div id="cong-list">
+          <div class="empty-state"><div class="empty-icon">🧊</div><p>Nenhuma congelação registrada.</p></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<!-- ═════════════════════════ MODAL – EXPORT / IMPORT ═══════════════════════ -->
+<div class="modal-overlay" id="modal-io">
+  <div class="modal">
+    <div class="modal-title">
+      💾 Exportar / Importar
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+
+    <div class="form-grid">
+      <div style="margin-bottom:0.5rem">
+        <button class="btn btn-ghost" id="btn-export" style="width:100%">⬇️ Exportar todos os dados (JSON)</button>
+      </div>
+
+      <div class="field" style="margin-top:0.5rem">
+        <label>Importar JSON</label>
+        <textarea id="import-text" placeholder='Cole aqui o JSON exportado…'></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="btn-reset">🗑️ Resetar para dados Notion</button>
+        <button class="btn btn-primary" id="btn-import" style="width:auto;margin-top:0">⬆️ Importar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─ Toast ──────────────────────────────────────────────────────────────────-->
+<div id="toast"></div>
+
+<!-- ─ Decorative background Chopper hat ─────────────────────────────────────-->
+<svg class="chopper-bg" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 52 Q14 28 22 10 Q30 28 28 52" fill="#c62828"/>
+  <path d="M78 52 Q86 28 78 10 Q70 28 72 52" fill="#c62828"/>
+  <path d="M18 56 Q18 14 50 9 Q82 14 82 56 Z" fill="#c62828"/>
+  <rect x="8" y="56" width="84" height="16" rx="8" fill="#b71c1c"/>
+  <rect x="46" y="20" width="8" height="30" fill="white" rx="4"/>
+  <rect x="36" y="30" width="28" height="10" fill="white" rx="5"/>
+</svg>
+
+<!-- ─ Scripts ────────────────────────────────────────────────────────────────-->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script src="js/charts.js"></script>
+</body>
+</html>
