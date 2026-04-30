@@ -1,13 +1,13 @@
 // ── ChopperVerso – Data Layer (Firestore) ─────────────────────────────────────
 // Persistência via Firebase Firestore. Estrutura: users/{uid}/entries  &  users/{uid}/congelacoes
 
-const TIPOS = [
+let TIPOS = [
   'bx gas', 'Bx esof', 'bx duod', 'bx colon',
   'vesícula não neoplásica', 'apêndice não neoplásico',
   'colectomia não neoplásica', 'colectomia neoplásica',
   'hemorroidas', 'pele lesão', 'gastrectomia não neoplásica',
   'congelação fora do horário', 'ihq', 'peritônio',
-  'enterectomia não neoplásica'
+  'enterectomia não neoplásica', 'Congelação'
 ];
 
 const TIPO_COLORS = {
@@ -25,7 +25,8 @@ const TIPO_COLORS = {
   'congelação fora do horário':  '#9CA3AF',
   'ihq':                         '#A855F7',
   'peritônio':                   '#DC2626',
-  'enterectomia não neoplásica': '#8B5CF6'
+  'enterectomia não neoplásica': '#8B5CF6',
+  'Congelação':                  '#0EA5E9'
 };
 
 // ─ Seed data (exportado do Notion – Abril 2026) ──────────────────────────────
@@ -138,6 +139,33 @@ const SEED_ENTRIES = [
 let _currentUid = null;
 
 function setCurrentUid(uid) { _currentUid = uid; }
+
+let _customTipos = [];
+
+function _metaRef() {
+  return db.collection('users').doc(_currentUid).collection('meta').doc('config');
+}
+
+async function loadCustomTipos() {
+  try {
+    const doc = await _metaRef().get();
+    _customTipos = doc.exists ? (doc.data().customTipos || []) : [];
+    _customTipos.forEach(t => {
+      if (!TIPOS.includes(t.name)) TIPOS.push(t.name);
+      TIPO_COLORS[t.name] = t.color;
+    });
+  } catch (_) { _customTipos = []; }
+}
+
+async function addCustomTipo(name, color) {
+  const trimmed = name.trim();
+  if (!trimmed || TIPOS.includes(trimmed)) return false;
+  _customTipos.push({ name: trimmed, color });
+  TIPOS.push(trimmed);
+  TIPO_COLORS[trimmed] = color;
+  await _metaRef().set({ customTipos: _customTipos }, { merge: true });
+  return true;
+}
 
 function _entriesRef() {
   return db.collection('users').doc(_currentUid).collection('entries');

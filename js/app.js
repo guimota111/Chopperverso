@@ -26,6 +26,8 @@ let loginMode = 'signin';
 auth.onAuthStateChanged(async (user) => {
   if (user) {
     setCurrentUid(user.uid);
+    await loadCustomTipos();
+    buildTipoDropdown();
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').style.display    = '';
     document.getElementById('user-email-pill').textContent = user.email;
@@ -115,17 +117,90 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 
 // ─ Multi-select Tipos ─────────────────────────────────────────────────────────
 function buildTipoDropdown() {
+  const PALETTE = ['#F97316','#EAB308','#22C55E','#06B6D4','#3B82F6','#7C3AED','#EC4899','#EF4444','#14B8A6','#F59E0B','#8B5CF6','#64748B'];
   const dd = document.getElementById('tipo-dropdown');
   dd.innerHTML = '';
+
   TIPOS.forEach(tipo => {
-    const opt   = document.createElement('label');
-    opt.className   = 'tipo-option';
+    const opt = document.createElement('label');
+    opt.className = 'tipo-option';
     opt.dataset.tipo = tipo;
     const color = TIPO_COLORS[tipo] || '#888';
     opt.innerHTML = `<input type="checkbox" value="${tipo}">
       <span class="tipo-chip" style="--chip-color:${color}">${tipo}</span>`;
     opt.addEventListener('click', (e) => { e.preventDefault(); toggleTipo(tipo); });
     dd.appendChild(opt);
+  });
+
+  const sep = document.createElement('div');
+  sep.className = 'tipo-separator';
+  dd.appendChild(sep);
+
+  const newBtn = document.createElement('button');
+  newBtn.className = 'tipo-new-btn';
+  newBtn.textContent = '+ Novo tipo';
+  dd.appendChild(newBtn);
+
+  const form = document.createElement('div');
+  form.className = 'tipo-new-form';
+  form.style.display = 'none';
+
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.placeholder = 'Nome do tipo';
+  nameInput.maxLength = 40;
+  nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveBtn.click(); } });
+  form.appendChild(nameInput);
+
+  const swatchRow = document.createElement('div');
+  swatchRow.className = 'tipo-color-swatches';
+  let _color = PALETTE[0];
+  PALETTE.forEach(c => {
+    const sw = document.createElement('button');
+    sw.className = 'color-swatch' + (c === _color ? ' selected' : '');
+    sw.style.background = c;
+    sw.dataset.color = c;
+    sw.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _color = c;
+      swatchRow.querySelectorAll('.color-swatch').forEach(s => s.classList.toggle('selected', s.dataset.color === c));
+    });
+    swatchRow.appendChild(sw);
+  });
+  form.appendChild(swatchRow);
+
+  const actions = document.createElement('div');
+  actions.className = 'tipo-new-actions';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn btn-ghost';
+  cancelBtn.textContent = 'Cancelar';
+  cancelBtn.addEventListener('click', (e) => { e.stopPropagation(); form.style.display = 'none'; nameInput.value = ''; });
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn btn-primary';
+  saveBtn.textContent = 'Criar';
+  saveBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const name = nameInput.value.trim();
+    if (!name) { toast('Digite o nome do tipo.', true); return; }
+    const ok = await addCustomTipo(name, _color);
+    if (!ok) { toast('Tipo já existe.', true); return; }
+    buildTipoDropdown();
+    updateTipoDropdownState();
+    toast(`Tipo "${name}" criado!`);
+  });
+
+  actions.appendChild(cancelBtn);
+  actions.appendChild(saveBtn);
+  form.appendChild(actions);
+  dd.appendChild(form);
+
+  newBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = form.style.display !== 'none';
+    form.style.display = isOpen ? 'none' : '';
+    if (!isOpen) nameInput.focus();
   });
 }
 
