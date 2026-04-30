@@ -33,8 +33,8 @@ function hexToRgba(hex, alpha) {
 }
 
 // ─ Main render entry point ────────────────────────────────────────────────────
-function renderCharts() {
-  const all     = getEntries();
+async function renderCharts() {
+  const all     = await getEntries();
   const entries = filterEntries(all, chartPeriod);
   const s       = calcStats(entries);
 
@@ -252,34 +252,34 @@ function destroyCharts() {
 
 // ─ Period buttons (charts tab) ────────────────────────────────────────────────
 document.querySelectorAll('#chart-period-bar .period-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', async () => {
     chartPeriod = btn.dataset.period;
     document.querySelectorAll('#chart-period-bar .period-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     destroyCharts();
-    renderCharts();
+    await renderCharts();
   });
 });
 
 // ─ Toggle Lâminas / Pontos on daily chart ─────────────────────────────────────
-document.getElementById('tog-lam').addEventListener('click', function() {
+document.getElementById('tog-lam').addEventListener('click', async function() {
   showLaminas = !showLaminas;
   this.classList.toggle('active-lam', showLaminas);
   this.style.opacity = showLaminas ? '1' : '0.45';
   if (dailyChart) { dailyChart.destroy(); dailyChart = null; }
-  renderCharts();
+  await renderCharts();
 });
 
-document.getElementById('tog-pts').addEventListener('click', function() {
+document.getElementById('tog-pts').addEventListener('click', async function() {
   showPontos = !showPontos;
   this.classList.toggle('active-pts', showPontos);
   this.style.opacity = showPontos ? '1' : '0.45';
   if (dailyChart) { dailyChart.destroy(); dailyChart = null; }
-  renderCharts();
+  await renderCharts();
 });
 
 // ─ Toggle tipo metric ─────────────────────────────────────────────────────────
-document.getElementById('tipo-metric-lam').addEventListener('click', function() {
+document.getElementById('tipo-metric-lam').addEventListener('click', async function() {
   tipoMetric = 'laminas';
   this.style.background     = 'var(--blue-l)';
   this.style.borderColor    = 'var(--blue-l)';
@@ -289,10 +289,10 @@ document.getElementById('tipo-metric-lam').addEventListener('click', function() 
   ptBtn.style.borderColor   = '';
   ptBtn.style.color         = '';
   if (tipoBarChart) { tipoBarChart.destroy(); tipoBarChart = null; }
-  renderCharts();
+  await renderCharts();
 });
 
-document.getElementById('tipo-metric-pts').addEventListener('click', function() {
+document.getElementById('tipo-metric-pts').addEventListener('click', async function() {
   tipoMetric = 'pontos';
   this.style.background     = 'var(--primary)';
   this.style.borderColor    = 'var(--primary)';
@@ -302,5 +302,5 @@ document.getElementById('tipo-metric-pts').addEventListener('click', function() 
   lamBtn.style.borderColor  = '';
   lamBtn.style.color        = '';
   if (tipoBarChart) { tipoBarChart.destroy(); tipoBarChart = null; }
-  renderCharts();
+  await renderCharts();
 });

@@ -1,0 +1,5 @@
+# Firebase config — contém chaves privadas, não commitar
+js/firebase-config.js
+
+# Claude Code
+.claude/

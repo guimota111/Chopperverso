@@ -1,7 +1,5 @@
-// ── ChopperVerso ─ Data Layer ──────────────────────────────────────────────
-// All persistence via localStorage. Key: 'chopperverso_v1'
-
-const STORAGE_KEY = 'chopperverso_v1';
+// ── ChopperVerso – Data Layer (Firestore) ─────────────────────────────────────
+// Persistência via Firebase Firestore. Estrutura: users/{uid}/entries  &  users/{uid}/congelacoes
 
 const TIPOS = [
   'bx gas', 'Bx esof', 'bx duod', 'bx colon',
@@ -30,7 +28,7 @@ const TIPO_COLORS = {
   'enterectomia não neoplásica': '#8B5CF6'
 };
 
-// ─ Seed data (exported from Notion – April 2026) ────────────────────────────
+// ─ Seed data (exportado do Notion – Abril 2026) ──────────────────────────────
 const SEED_ENTRIES = [
   // ── 10 Abr ──────────────────────────────────────────────────────────────
   {id:'n001',fap:'8035.0838.0347',data:'2026-04-10',tipos:['bx gas'],laminas:8,pontos:5},
@@ -136,73 +134,118 @@ const SEED_ENTRIES = [
   {id:'n099',fap:'8013.0026.0034',data:'2026-04-27',tipos:['bx gas','Bx esof'],laminas:10,pontos:6},
 ];
 
-// ─ Storage ─────────────────────────────────────────────────────────────────
-function _load() {
+// ─ Firestore helpers ──────────────────────────────────────────────────────────
+let _currentUid = null;
+
+function setCurrentUid(uid) { _currentUid = uid; }
+
+function _entriesRef() {
+  return db.collection('users').doc(_currentUid).collection('entries');
+}
+
+function _congRef() {
+  return db.collection('users').doc(_currentUid).collection('congelacoes');
+}
+
+// ─ Entries CRUD ───────────────────────────────────────────────────────────────
+async function getEntries() {
+  const snap = await _entriesRef().get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function addEntry(entry) {
+  await _entriesRef().add({ ...entry, createdAt: new Date().toISOString() });
+}
+
+async function deleteEntry(id) {
+  await _entriesRef().doc(id).delete();
+}
+
+// ─ Congelações CRUD ───────────────────────────────────────────────────────────
+async function getCongelacoes() {
+  const snap = await _congRef().get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function addCongelacao(cong) {
+  await _congRef().add({ ...cong, createdAt: new Date().toISOString() });
+}
+
+async function deleteCongelacao(id) {
+  await _congRef().doc(id).delete();
+}
+
+// ─ Export / Import ────────────────────────────────────────────────────────────
+async function exportJSON() {
+  const [entries, congelacoes] = await Promise.all([getEntries(), getCongelacoes()]);
+  return JSON.stringify({ version: 2, entries, congelacoes }, null, 2);
+}
+
+async function importJSON(json) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (_) {}
-  return null;
+    const parsed = JSON.parse(json);
+    if (!parsed.entries) throw new Error('invalid');
+
+    const [eSnap, cSnap] = await Promise.all([_entriesRef().get(), _congRef().get()]);
+
+    const ops = [];
+    eSnap.docs.forEach(d => ops.push({ type: 'delete', ref: d.ref }));
+    cSnap.docs.forEach(d => ops.push({ type: 'delete', ref: d.ref }));
+    parsed.entries.forEach(e => {
+      const { id: _, ...data } = e;
+      ops.push({ type: 'set', ref: _entriesRef().doc(), data: { ...data, createdAt: data.createdAt || new Date().toISOString() } });
+    });
+    (parsed.congelacoes || []).forEach(c => {
+      const { id: _, ...data } = c;
+      ops.push({ type: 'set', ref: _congRef().doc(), data: { ...data, createdAt: data.createdAt || new Date().toISOString() } });
+    });
+
+    await _commitBatches(ops);
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
-function _save(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+async function resetToSeed() {
+  const snap = await _entriesRef().get();
+  const ops  = [];
+  snap.docs.forEach(d => ops.push({ type: 'delete', ref: d.ref }));
+  SEED_ENTRIES.forEach(e => {
+    const { id: _, ...data } = e;
+    ops.push({ type: 'set', ref: _entriesRef().doc(), data: { ...data, createdAt: e.data + 'T08:00:00Z' } });
+  });
+  await _commitBatches(ops);
 }
 
-function _init() {
-  const data = _load();
-  if (data) return data;
-  const fresh = { version: 1, entries: SEED_ENTRIES.map(e => ({ ...e, createdAt: e.data + 'T08:00:00Z' })), congelacoes: [] };
-  _save(fresh);
-  return fresh;
+async function _commitBatches(ops) {
+  for (let i = 0; i < ops.length; i += 490) {
+    const batch = db.batch();
+    ops.slice(i, i + 490).forEach(op => {
+      if (op.type === 'delete') batch.delete(op.ref);
+      else                      batch.set(op.ref, op.data);
+    });
+    await batch.commit();
+  }
 }
 
-function _uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+// ─ Date helpers ───────────────────────────────────────────────────────────────
+function _localISO(date) {
+  const d = date || new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// ─ Entries CRUD ─────────────────────────────────────────────────────────────
-function getEntries() { return _init().entries; }
-
-function addEntry(entry) {
-  const data = _init();
-  data.entries.unshift({ ...entry, id: _uid(), createdAt: new Date().toISOString() });
-  _save(data);
-}
-
-function deleteEntry(id) {
-  const data = _init();
-  data.entries = data.entries.filter(e => e.id !== id);
-  _save(data);
-}
-
-// ─ Congelações CRUD ─────────────────────────────────────────────────────────
-function getCongelacoes() { return _init().congelacoes; }
-
-function addCongelacao(cong) {
-  const data = _init();
-  data.congelacoes.unshift({ ...cong, id: _uid(), createdAt: new Date().toISOString() });
-  _save(data);
-}
-
-function deleteCongelacao(id) {
-  const data = _init();
-  data.congelacoes = data.congelacoes.filter(c => c.id !== id);
-  _save(data);
-}
-
-// ─ Date helpers ─────────────────────────────────────────────────────────────
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return _localISO();
 }
 
 function weekBounds() {
-  const d = new Date();
-  const dow = d.getDay();
+  const d    = new Date();
+  const dow  = d.getDay();
   const diff = dow === 0 ? -6 : 1 - dow;
-  const mon = new Date(d); mon.setDate(d.getDate() + diff);
-  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-  return { start: mon.toISOString().slice(0, 10), end: sun.toISOString().slice(0, 10) };
+  const mon  = new Date(d); mon.setDate(d.getDate() + diff);
+  const sun  = new Date(mon); sun.setDate(mon.getDate() + 6);
+  return { start: _localISO(mon), end: _localISO(sun) };
 }
 
 function monthStart() {
@@ -214,7 +257,7 @@ function yearStart() {
   return `${new Date().getFullYear()}-01-01`;
 }
 
-// ─ Filters ──────────────────────────────────────────────────────────────────
+// ─ Filters ────────────────────────────────────────────────────────────────────
 function filterEntries(entries, period) {
   const today = todayISO();
   const wb    = weekBounds();
@@ -225,7 +268,7 @@ function filterEntries(entries, period) {
   return entries;
 }
 
-// ─ Aggregations ─────────────────────────────────────────────────────────────
+// ─ Aggregations ───────────────────────────────────────────────────────────────
 function calcStats(entries) {
   return {
     casos:   entries.length,
@@ -253,25 +296,4 @@ function groupByTipo(entries) {
     });
   });
   return map;
-}
-
-// ─ Export / Import ───────────────────────────────────────────────────────────
-function exportJSON() {
-  return JSON.stringify(_init(), null, 2);
-}
-
-function importJSON(json) {
-  try {
-    const parsed = JSON.parse(json);
-    if (!parsed.entries) throw new Error('invalid');
-    _save(parsed);
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-function resetToSeed() {
-  localStorage.removeItem(STORAGE_KEY);
-  _init();
 }

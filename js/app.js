@@ -1,11 +1,11 @@
-// ── ChopperVerso · App Logic ────────────────────────────────────────────────
+// ── ChopperVerso · App Logic ─────────────────────────────────────────────────
 
-// ─ State ─────────────────────────────────────────────────────────────────────
-let selectedTipos   = [];
-let regPeriod       = 'week';
-let activeTab       = 'inserir';
+// ─ State ──────────────────────────────────────────────────────────────────────
+let selectedTipos = [];
+let regPeriod     = 'week';
+let activeTab     = 'inserir';
 
-// ─ Helpers ───────────────────────────────────────────────────────────────────
+// ─ Helpers ────────────────────────────────────────────────────────────────────
 function formatDate(iso) {
   if (!iso) return '–';
   const [y, m, d] = iso.split('-');
@@ -20,9 +20,75 @@ function toast(msg, error = false) {
   el._t = setTimeout(() => el.className = '', 2800);
 }
 
-// ─ Stats bar ─────────────────────────────────────────────────────────────────
-function refreshStats() {
-  const all = getEntries();
+// ─ Auth ───────────────────────────────────────────────────────────────────────
+let loginMode = 'signin';
+
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    setCurrentUid(user.uid);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-shell').style.display    = '';
+    document.getElementById('user-email-pill').textContent = user.email;
+    await refreshStats();
+    await renderToday();
+  } else {
+    setCurrentUid(null);
+    document.getElementById('login-screen').style.display = '';
+    document.getElementById('app-shell').style.display    = 'none';
+  }
+});
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email  = document.getElementById('l-email').value.trim();
+  const pwd    = document.getElementById('l-password').value;
+  const errEl  = document.getElementById('login-error');
+  const btn    = document.getElementById('login-submit-btn');
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = loginMode === 'signin' ? 'Entrando…' : 'Criando conta…';
+  try {
+    if (loginMode === 'signin') {
+      await auth.signInWithEmailAndPassword(email, pwd);
+    } else {
+      await auth.createUserWithEmailAndPassword(email, pwd);
+    }
+  } catch (err) {
+    errEl.textContent = _authError(err.code);
+    btn.disabled = false;
+    btn.textContent = loginMode === 'signin' ? 'Entrar' : 'Criar conta';
+  }
+});
+
+document.getElementById('login-toggle-btn').addEventListener('click', () => {
+  loginMode = loginMode === 'signin' ? 'signup' : 'signin';
+  const isSignup = loginMode === 'signup';
+  document.getElementById('login-mode-label').textContent   = isSignup ? 'Criar nova conta' : 'Entre na sua conta';
+  document.getElementById('login-submit-btn').textContent   = isSignup ? 'Criar conta' : 'Entrar';
+  document.getElementById('login-toggle-btn').textContent   = isSignup ? 'Já tem conta? Entrar' : 'Não tem conta? Criar';
+  document.getElementById('login-error').textContent = '';
+});
+
+document.getElementById('btn-logout').addEventListener('click', () => {
+  if (confirm('Sair da conta?')) auth.signOut();
+});
+
+function _authError(code) {
+  const msgs = {
+    'auth/user-not-found':       'Usuário não encontrado.',
+    'auth/wrong-password':       'Senha incorreta.',
+    'auth/invalid-credential':   'E-mail ou senha incorretos.',
+    'auth/email-already-in-use': 'Este e-mail já está em uso.',
+    'auth/invalid-email':        'E-mail inválido.',
+    'auth/weak-password':        'Senha fraca (mínimo 6 caracteres).',
+    'auth/too-many-requests':    'Muitas tentativas. Tente novamente em alguns minutos.',
+  };
+  return msgs[code] || 'Erro ao autenticar. Tente novamente.';
+}
+
+// ─ Stats bar ──────────────────────────────────────────────────────────────────
+async function refreshStats() {
+  const all     = await getEntries();
   const periods = { today: 'today', week: 'week', month: 'month', year: 'year' };
   for (const [key, period] of Object.entries(periods)) {
     const s = calcStats(filterEntries(all, period));
@@ -32,36 +98,33 @@ function refreshStats() {
   }
 }
 
-// ─ Tab switching ─────────────────────────────────────────────────────────────
-function switchTab(tab) {
+// ─ Tab switching ──────────────────────────────────────────────────────────────
+async function switchTab(tab) {
   activeTab = tab;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.tab-section').forEach(s => s.classList.toggle('active', s.id === `tab-${tab}`));
-  if (tab === 'inserir')    renderToday();
-  if (tab === 'registros')  renderRecords();
-  if (tab === 'graficos')   renderCharts();
-  if (tab === 'congelacoes') renderCongelacoes();
+  if (tab === 'inserir')     await renderToday();
+  if (tab === 'registros')   await renderRecords();
+  if (tab === 'graficos')    await renderCharts();
+  if (tab === 'congelacoes') await renderCongelacoes();
 }
 
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
-// ─ Multi-select Tipos ────────────────────────────────────────────────────────
+// ─ Multi-select Tipos ─────────────────────────────────────────────────────────
 function buildTipoDropdown() {
   const dd = document.getElementById('tipo-dropdown');
   dd.innerHTML = '';
   TIPOS.forEach(tipo => {
-    const opt = document.createElement('label');
-    opt.className = 'tipo-option';
+    const opt   = document.createElement('label');
+    opt.className   = 'tipo-option';
     opt.dataset.tipo = tipo;
     const color = TIPO_COLORS[tipo] || '#888';
     opt.innerHTML = `<input type="checkbox" value="${tipo}">
       <span class="tipo-chip" style="--chip-color:${color}">${tipo}</span>`;
-    opt.addEventListener('click', (e) => {
-      e.preventDefault();
-      toggleTipo(tipo);
-    });
+    opt.addEventListener('click', (e) => { e.preventDefault(); toggleTipo(tipo); });
     dd.appendChild(opt);
   });
 }
@@ -77,7 +140,6 @@ function toggleTipo(tipo) {
 function renderTipoTrigger() {
   const trigger = document.getElementById('tipo-trigger');
   const ph      = document.getElementById('tipo-placeholder');
-  // Clear existing tags (keep placeholder and arrow)
   trigger.querySelectorAll('.tipo-tag').forEach(t => t.remove());
   if (selectedTipos.length === 0) {
     ph.style.display = '';
@@ -85,7 +147,7 @@ function renderTipoTrigger() {
     ph.style.display = 'none';
     selectedTipos.forEach(tipo => {
       const color = TIPO_COLORS[tipo] || '#888';
-      const tag = document.createElement('span');
+      const tag   = document.createElement('span');
       tag.className = 'tipo-tag';
       tag.style.background = color;
       tag.innerHTML = `${tipo}<span class="remove" data-tipo="${tipo}">×</span>`;
@@ -106,42 +168,31 @@ function updateTipoDropdownState() {
   });
 }
 
-// Dropdown open/close
 const tipoSelect  = document.getElementById('tipo-select');
 const tipoTrigger = document.getElementById('tipo-trigger');
 
-tipoTrigger.addEventListener('click', () => {
-  tipoSelect.classList.toggle('open');
-});
-
+tipoTrigger.addEventListener('click', () => tipoSelect.classList.toggle('open'));
 tipoTrigger.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tipoSelect.classList.toggle('open'); }
   if (e.key === 'Escape') tipoSelect.classList.remove('open');
 });
-
 document.addEventListener('click', (e) => {
   if (!tipoSelect.contains(e.target)) tipoSelect.classList.remove('open');
 });
 
 // ─ Entry Form ─────────────────────────────────────────────────────────────────
-// Set today's date as default
-document.getElementById('f-data').value = todayISO();
-document.getElementById('cong-data').value = todayISO();
-document.getElementById('today-date-label').textContent = formatDate(todayISO());
-
-document.getElementById('entry-form').addEventListener('submit', (e) => {
+document.getElementById('entry-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const fap    = document.getElementById('f-fap').value.trim();
-  const data   = document.getElementById('f-data').value;
-  const lam    = parseInt(document.getElementById('f-laminas').value) || 0;
-  const pts    = parseInt(document.getElementById('f-pontos').value)  || 0;
+  const fap  = document.getElementById('f-fap').value.trim();
+  const data = document.getElementById('f-data').value;
+  const lam  = parseInt(document.getElementById('f-laminas').value) || 0;
+  const pts  = parseInt(document.getElementById('f-pontos').value)  || 0;
 
-  if (!fap || !data) { toast('Preencha FAP e Data.', true); return; }
+  if (!fap || !data)           { toast('Preencha FAP e Data.', true); return; }
   if (selectedTipos.length === 0) { toast('Selecione pelo menos um tipo.', true); return; }
 
-  addEntry({ fap, data, tipos: [...selectedTipos], laminas: lam, pontos: pts });
+  await addEntry({ fap, data, tipos: [...selectedTipos], laminas: lam, pontos: pts });
 
-  // Reset form
   document.getElementById('f-fap').value     = '';
   document.getElementById('f-laminas').value = '';
   document.getElementById('f-pontos').value  = '';
@@ -150,14 +201,15 @@ document.getElementById('entry-form').addEventListener('submit', (e) => {
   updateTipoDropdownState();
 
   toast('✅ Entrada inserida com sucesso!');
-  refreshStats();
-  renderToday();
+  await refreshStats();
+  await renderToday();
 });
 
-// ─ Today view ────────────────────────────────────────────────────────────────
-function renderToday() {
-  const entries = filterEntries(getEntries(), 'today')
-    .sort((a, b) => b.createdAt?.localeCompare(a.createdAt));
+// ─ Today view ─────────────────────────────────────────────────────────────────
+async function renderToday() {
+  const all     = await getEntries();
+  const entries = filterEntries(all, 'today')
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   const s = calcStats(entries);
 
   document.getElementById('td-casos').textContent = s.casos;
@@ -170,7 +222,7 @@ function renderToday() {
     return;
   }
 
-  const rows = entries.map(e => `
+  container.innerHTML = entries.map(e => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;
                 background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-s);margin-bottom:5px;gap:8px">
       <div style="min-width:0">
@@ -186,11 +238,9 @@ function renderToday() {
           <div style="font-size:0.75rem;color:var(--text-3)">pts</div>
           <div style="font-weight:800;color:var(--accent)">${e.pontos}</div>
         </div>
-        <button class="btn btn-danger" data-id="${e.id}" onclick="deleteRow(this.dataset.id)">✕</button>
+        <button class="btn btn-danger" onclick="deleteRow('${e.id}')">✕</button>
       </div>
     </div>`).join('');
-
-  container.innerHTML = rows;
 }
 
 function renderTipoBadges(tipos = []) {
@@ -200,20 +250,21 @@ function renderTipoBadges(tipos = []) {
   }).join('');
 }
 
-function deleteRow(id) {
+async function deleteRow(id) {
   if (!confirm('Remover esta entrada?')) return;
-  deleteEntry(id);
+  await deleteEntry(id);
   toast('Entrada removida.');
-  refreshStats();
-  renderToday();
-  if (activeTab === 'registros') renderRecords();
-  if (activeTab === 'graficos')  renderCharts();
+  await refreshStats();
+  await renderToday();
+  if (activeTab === 'registros') await renderRecords();
+  if (activeTab === 'graficos')  await renderCharts();
 }
 
-// ─ Records view ──────────────────────────────────────────────────────────────
-function renderRecords() {
-  const entries = filterEntries(getEntries(), regPeriod)
-    .sort((a, b) => b.data.localeCompare(a.data) || b.createdAt?.localeCompare(a.createdAt));
+// ─ Records view ───────────────────────────────────────────────────────────────
+async function renderRecords() {
+  const all     = await getEntries();
+  const entries = filterEntries(all, regPeriod)
+    .sort((a, b) => b.data.localeCompare(a.data) || (b.createdAt || '').localeCompare(a.createdAt || ''));
   const s = calcStats(entries);
 
   document.getElementById('reg-casos').textContent = s.casos;
@@ -237,30 +288,29 @@ function renderRecords() {
     </tr>`).join('');
 }
 
-// Records period buttons
 document.querySelectorAll('#tab-registros .period-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', async () => {
     regPeriod = btn.dataset.period;
     document.querySelectorAll('#tab-registros .period-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    renderRecords();
+    await renderRecords();
   });
 });
 
-// ─ Congelações view ──────────────────────────────────────────────────────────
-document.getElementById('cong-form').addEventListener('submit', (e) => {
+// ─ Congelações view ───────────────────────────────────────────────────────────
+document.getElementById('cong-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('cong-name').value.trim();
   const data = document.getElementById('cong-data').value;
   if (!name || !data) { toast('Preencha todos os campos.', true); return; }
-  addCongelacao({ name, data });
+  await addCongelacao({ name, data });
   document.getElementById('cong-name').value = '';
   toast('🧊 Congelação registrada!');
-  renderCongelacoes();
+  await renderCongelacoes();
 });
 
-function renderCongelacoes() {
-  const list = getCongelacoes().sort((a, b) => b.data.localeCompare(a.data));
+async function renderCongelacoes() {
+  const list = (await getCongelacoes()).sort((a, b) => b.data.localeCompare(a.data));
   document.getElementById('cong-total').textContent = list.length;
   const container = document.getElementById('cong-list');
   if (list.length === 0) {
@@ -277,11 +327,11 @@ function renderCongelacoes() {
     </div>`).join('');
 }
 
-function deleteCong(id) {
+async function deleteCong(id) {
   if (!confirm('Remover esta congelação?')) return;
-  deleteCongelacao(id);
+  await deleteCongelacao(id);
   toast('Congelação removida.');
-  renderCongelacoes();
+  await renderCongelacoes();
 }
 
 // ─ Export / Import modal ──────────────────────────────────────────────────────
@@ -298,42 +348,44 @@ document.getElementById('modal-io').addEventListener('click', (e) => {
     document.getElementById('modal-io').classList.remove('open');
 });
 
-document.getElementById('btn-export').addEventListener('click', () => {
-  const data = exportJSON();
-  const blob = new Blob([data], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `chopperverso_${todayISO()}.json`;
+document.getElementById('btn-export').addEventListener('click', async () => {
+  const data = await exportJSON();
+  const blob  = new Blob([data], { type: 'application/json' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href      = url;
+  a.download  = `chopperverso_${todayISO()}.json`;
   a.click();
   URL.revokeObjectURL(url);
   toast('✅ Dados exportados!');
 });
 
-document.getElementById('btn-import').addEventListener('click', () => {
+document.getElementById('btn-import').addEventListener('click', async () => {
   const json = document.getElementById('import-text').value.trim();
   if (!json) { toast('Cole o JSON antes de importar.', true); return; }
-  if (importJSON(json)) {
+  const ok = await importJSON(json);
+  if (ok) {
     toast('✅ Dados importados com sucesso!');
     document.getElementById('modal-io').classList.remove('open');
     document.getElementById('import-text').value = '';
-    refreshStats();
-    switchTab(activeTab);
+    await refreshStats();
+    await switchTab(activeTab);
   } else {
     toast('❌ JSON inválido.', true);
   }
 });
 
-document.getElementById('btn-reset').addEventListener('click', () => {
-  if (!confirm('Isso vai apagar todos os dados locais e restaurar os dados do Notion. Continuar?')) return;
-  resetToSeed();
+document.getElementById('btn-reset').addEventListener('click', async () => {
+  if (!confirm('Isso vai apagar todos os dados e restaurar os dados do Notion. Continuar?')) return;
+  await resetToSeed();
   toast('✅ Dados restaurados!');
   document.getElementById('modal-io').classList.remove('open');
-  refreshStats();
-  switchTab(activeTab);
+  await refreshStats();
+  await switchTab(activeTab);
 });
 
 // ─ Init ───────────────────────────────────────────────────────────────────────
 buildTipoDropdown();
-refreshStats();
-renderToday();
+document.getElementById('f-data').value                  = todayISO();
+document.getElementById('cong-data').value               = todayISO();
+document.getElementById('today-date-label').textContent  = formatDate(todayISO());
