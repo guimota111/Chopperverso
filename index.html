@@ -15,16 +15,7 @@
   <div class="card login-card">
 
     <div class="login-logo">
-      <svg class="logo-hat" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
-        <path d="M22 52 Q14 28 22 10 Q30 28 28 52" fill="#6d3a1e"/>
-        <path d="M78 52 Q86 28 78 10 Q70 28 72 52" fill="#6d3a1e"/>
-        <path d="M23 50 Q16 30 23 14 Q29 30 27 50" fill="#e8957a"/>
-        <path d="M77 50 Q84 30 77 14 Q71 30 73 50" fill="#e8957a"/>
-        <path d="M18 56 Q18 14 50 9 Q82 14 82 56 Z" fill="#c62828"/>
-        <rect x="8" y="56" width="84" height="16" rx="8" fill="#b71c1c"/>
-        <rect x="46" y="20" width="8" height="30" fill="white" rx="4"/>
-        <rect x="36" y="30" width="28" height="10" fill="white" rx="5"/>
-      </svg>
+      <img src="Choppers/cafe.png" alt="Chopper Hat" class="logo-hat" style="width: 200px; height: 200px; object-fit: contain;">
       <div>
         <div class="login-title">ChopperVerso</div>
         <div class="login-subtitle">Produção · Acesso</div>
@@ -50,6 +41,12 @@
       Não tem conta? Criar
     </button>
 
+    <!-- Chopper waving -->
+    <div style="text-align:center;margin-top:1.5rem;opacity:0.9">
+      <img src="Choppers/Jedi.png" alt="Chopper Waving" style="width:100px;height:100px;object-fit:contain;">
+      <p style="font-size:0.75rem;color:var(--text-3);margin-top:0.25rem">Bem-vindo ao ChopperVerso!</p>
+    </div>
+
   </div>
 </div>
 
@@ -59,19 +56,10 @@
 <!-- ─ HEADER ──────────────────────────────────────────────────────────────── -->
 <header class="header">
   <div class="logo">
-    <svg class="logo-hat" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
-      <path d="M22 52 Q14 28 22 10 Q30 28 28 52" fill="#6d3a1e"/>
-      <path d="M78 52 Q86 28 78 10 Q70 28 72 52" fill="#6d3a1e"/>
-      <path d="M23 50 Q16 30 23 14 Q29 30 27 50" fill="#e8957a"/>
-      <path d="M77 50 Q84 30 77 14 Q71 30 73 50" fill="#e8957a"/>
-      <path d="M18 56 Q18 14 50 9 Q82 14 82 56 Z" fill="#c62828"/>
-      <rect x="8" y="56" width="84" height="16" rx="8" fill="#b71c1c"/>
-      <rect x="46" y="20" width="8" height="30" fill="white" rx="4"/>
-      <rect x="36" y="30" width="28" height="10" fill="white" rx="5"/>
-    </svg>
+    <img src="Choppers/cafe.png" alt="Chopper Hat" class="logo-hat" style="width: 40px; height: 40px; object-fit: contain;">
     <div class="logo-text">
       <h1>ChopperVerso</h1>
-      <p>Produção · Lara</p>
+      <p>Produção</p>
     </div>
   </div>
 
@@ -85,15 +73,24 @@
     <button class="nav-btn" data-tab="graficos">
       <span class="icon">📊</span> Gráficos
     </button>
+    <button class="nav-btn" data-tab="records">
+      <span class="icon">🏆</span> Records
+    </button>
+    <button class="nav-btn" data-tab="observacoes">
+      <span class="icon">🗒️</span> Observações
+    </button>
+    <button class="nav-btn" data-tab="relatorio">
+      <span class="icon">📄</span> Relatório
+    </button>
     <button class="nav-btn" data-tab="congelacoes">
-      <span class="icon">🧊</span> Congelações
+      <span class="icon">❄️</span> Congelações
     </button>
   </nav>
 
   <div class="header-actions">
     <span class="user-email-pill" id="user-email-pill"></span>
     <button class="icon-btn" id="btn-logout" title="Sair">🚪</button>
-    <button class="icon-btn" id="btn-open-io" title="Exportar / Importar dados">💾</button>
+    <button class="icon-btn" id="btn-open-io" title="Ferramentas (e-mail, backup, automação)">💾</button>
   </div>
 </header>
 
@@ -165,7 +162,10 @@
     <div class="grid-2">
 
       <div class="card">
-        <div class="card-title">📝 Nova Entrada</div>
+        <div class="card-title">
+          📝 Nova Entrada
+          <button type="button" class="icon-btn" id="btn-campos" title="Campos extras" style="margin-left:auto;width:28px;height:28px;font-size:0.85rem">⚙️</button>
+        </div>
         <form id="entry-form" class="form-grid" autocomplete="off">
           <div class="field">
             <label>FAP</label>
@@ -174,6 +174,10 @@
           <div class="field">
             <label>Data</label>
             <input type="date" id="f-data" required>
+            <label class="freeze-toggle" id="freeze-toggle-label" style="margin-top:6px">
+              <input type="checkbox" id="f-freeze">
+              🧊 Dia de congelação
+            </label>
           </div>
           <div class="field">
             <label>Tipo(s)</label>
@@ -192,8 +196,25 @@
             </div>
             <div class="field">
               <label>Pontos</label>
-              <input type="number" id="f-pontos" placeholder="0" min="0" required>
+              <input type="number" id="f-pontos" placeholder="0" min="0" step="0.5" required>
             </div>
+          </div>
+          <div id="extra-fields-inputs"></div>
+          <label class="freeze-toggle segunda-ass-toggle" id="f-segunda-ass-label">
+            <input type="checkbox" id="f-segunda-assinatura" class="segunda-ass-cb">
+            ✍️ Segunda Assinatura
+          </label>
+          <label class="freeze-toggle interessante-toggle" id="f-interessante-label">
+            <input type="checkbox" id="f-interessante" class="interessante-cb">
+            ⭐ Caso interessante
+          </label>
+          <label class="freeze-toggle conjunto-toggle" id="f-conjunto-label">
+            <input type="checkbox" id="f-liberar-conjunto" class="conjunto-cb">
+            👥 Liberar em conjunto
+          </label>
+          <div class="field conjunto-panel" id="conjunto-panel" style="display:none">
+            <label>Colega</label>
+            <select id="conjunto-colegas-list"></select>
           </div>
           <button type="submit" class="btn btn-primary">➕ Inserir Entrada</button>
         </form>
@@ -215,6 +236,21 @@
       </div>
 
     </div>
+
+    <div class="card freeze-card">
+      <div class="card-title">🧊 Dias de Congelação <img src="Choppers/frio1.png" alt="" style="height:100px;object-fit:contain;margin-left:6px;vertical-align:middle;"></div>
+      <div class="freeze-manager">
+        <div class="freeze-picker-row">
+          <div class="field" style="flex:1;margin:0">
+            <label>Data</label>
+            <input type="date" id="freeze-date-picker">
+          </div>
+          <button class="btn btn-primary" id="btn-toggle-freeze-day" style="flex-shrink:0;margin-top:0;width:auto">🧊 Marcar</button>
+        </div>
+        <div id="freeze-days-list"></div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ─ TAB: REGISTROS ────────────────────────────────────────────────────── -->
@@ -224,6 +260,30 @@
       <button class="period-btn" data-period="month">Este Mês</button>
       <button class="period-btn" data-period="year">Este Ano</button>
       <button class="period-btn" data-period="all">Total</button>
+      <button class="period-btn" data-period="custom">📅 Data</button>
+    </div>
+    <div id="reg-date-filter" style="display:none;margin-bottom:1rem">
+      <div class="date-filter-row">
+        <div class="field" style="margin:0;flex:1">
+          <label>De</label>
+          <input type="date" id="reg-date-from">
+        </div>
+        <div class="field" style="margin:0;flex:1">
+          <label>Até</label>
+          <input type="date" id="reg-date-to">
+        </div>
+        <button class="btn btn-primary" id="btn-apply-date" style="margin-top:0;width:auto;align-self:flex-end">Filtrar</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:1rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:0.5rem">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--text-2)">🏷️ Filtrar por tipo</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="chart-toggle" id="reg-tog-interessante">⭐ Só interessantes</button>
+          <button class="chart-toggle" id="reg-tipo-clear" style="display:none">✕ Limpar tipos</button>
+        </div>
+      </div>
+      <div class="reg-tipo-chips" id="reg-tipo-chips"><!-- preenchido dinamicamente --></div>
     </div>
     <div class="card">
       <div class="period-summary" id="reg-summary">
@@ -231,22 +291,8 @@
         <div class="ps-card"><div class="ps-val c2" id="reg-lam">0</div><div class="ps-lbl">Lâminas</div></div>
         <div class="ps-card"><div class="ps-val c3" id="reg-pts">0</div><div class="ps-lbl">Pontos</div></div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>FAP</th>
-              <th>Data</th>
-              <th>Tipo(s)</th>
-              <th style="text-align:right">Lâminas</th>
-              <th style="text-align:right">Pontos</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="reg-tbody">
-            <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-3)">Sem registros neste período.</td></tr>
-          </tbody>
-        </table>
+      <div class="table-wrap" id="reg-table-wrap">
+        <!-- preenchido dinamicamente -->
       </div>
     </div>
   </section>
@@ -259,33 +305,55 @@
       <button class="period-btn" data-period="year">Este Ano</button>
       <button class="period-btn" data-period="all">Total</button>
     </div>
+    <div style="margin-bottom:0.5rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <button class="chart-toggle" id="tog-segunda-ass">✍️ 2ª Assinatura</button>
+      <span id="segunda-ass-info" style="font-size:0.72rem;color:var(--text-3)"></span>
+    </div>
     <div class="period-summary" id="chart-summary">
       <div class="ps-card"><div class="ps-val c1" id="ch-casos">0</div><div class="ps-lbl">Casos</div></div>
       <div class="ps-card"><div class="ps-val c2" id="ch-lam">0</div><div class="ps-lbl">Lâminas</div></div>
       <div class="ps-card"><div class="ps-val c3" id="ch-pts">0</div><div class="ps-lbl">Pontos</div></div>
     </div>
     <div class="charts-grid">
-      <div class="chart-card span-2">
+      <div class="chart-card span-2" style="position:relative">
         <div class="chart-card-title">
           📈 Produção por Dia
-          <div class="chart-controls">
-            <button class="chart-toggle active-lam" id="tog-lam">🔵 Lâminas</button>
+          <div class="chart-controls" style="flex-wrap:wrap;justify-content:flex-end;gap:3px">
+            <button class="chart-toggle active-group" id="daily-group-day">Dia</button>
+            <button class="chart-toggle" id="daily-group-week">Semana</button>
+            <button class="chart-toggle" id="daily-group-month">Mês</button>
+            <span style="display:inline-block;width:1px;height:14px;background:var(--border2);align-self:center;margin:0 2px"></span>
+            <button class="chart-toggle" id="tog-lam">🔵 Lâminas</button>
             <button class="chart-toggle active-pts" id="tog-pts">🔴 Pontos</button>
           </div>
+        </div>
+        <div class="chart-controls" id="daily-period-bar" style="flex-wrap:wrap;gap:3px;margin-bottom:0.5rem">
+          <button class="chart-toggle" data-period="week">Esta Semana</button>
+          <button class="chart-toggle active-group" data-period="month">Este Mês</button>
+          <button class="chart-toggle" data-period="year">Este Ano</button>
+          <button class="chart-toggle" data-period="all">Total</button>
         </div>
         <div class="chart-wrap" style="height:240px">
           <canvas id="chart-daily"></canvas>
         </div>
+        <!-- Chopper apontando para o gráfico -->
+        <img src="Choppers/Estatistico.png" alt="Chopper" class="chopper-chart-deco" style="width: 100px; height: auto;">
       </div>
       <div class="chart-card">
-        <div class="chart-card-title">🥧 Distribuição por Tipo</div>
-        <div class="chart-wrap" style="height:280px">
-          <canvas id="chart-tipos"></canvas>
+        <div class="chart-card-title">
+          📊 Média de Pontos
+          <div class="chart-controls">
+            <button class="chart-toggle" id="avg-group-week">Semana</button>
+            <button class="chart-toggle active-group" id="avg-group-month">Mês</button>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:252px">
+          <canvas id="chart-avgpts"></canvas>
         </div>
       </div>
       <div class="chart-card">
         <div class="chart-card-title">
-          📏 Lâminas por Tipo
+          🧩 Tipos por Volume
           <div class="chart-controls">
             <button class="chart-toggle" id="tipo-metric-lam" style="background:var(--blue-l);border-color:var(--blue-l);color:#fff">Lâminas</button>
             <button class="chart-toggle" id="tipo-metric-pts">Pontos</button>
@@ -298,48 +366,303 @@
     </div>
   </section>
 
-  <!-- ─ TAB: CONGELAÇÕES ──────────────────────────────────────────────────── -->
+
+  <!-- ─ TAB: CONGELAÇÕES ─────────────────────────────────────────────────── -->
+  <!-- ─ TAB: RELATÓRIO PDF ────────────────────────────────────────────────── -->
+  <section id="tab-relatorio" class="tab-section">
+    <div class="card" style="max-width:560px">
+      <div class="card-title">📄 Exportar Relatório PDF</div>
+      <p style="font-size:0.8rem;color:var(--text-3);margin:0 0 1rem">
+        Escolha o período do relatório. O PDF traz a pontuação de cada dia, as médias do
+        período e as observações registradas.
+      </p>
+      <div class="form-grid">
+        <div class="form-row">
+          <div class="field">
+            <label>De</label>
+            <input type="date" id="rel-data-inicio" required>
+          </div>
+          <div class="field">
+            <label>Até</label>
+            <input type="date" id="rel-data-fim" required>
+          </div>
+        </div>
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.78rem;color:var(--text-2);background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.75rem;cursor:pointer">
+          <input type="checkbox" id="rel-incluir-casos" style="margin-top:2px">
+          <span>Incluir a lista de casos liberados em cada dia.
+            <b>Atenção:</b> em períodos longos isso pode deixar o PDF bem extenso — deixe
+            desmarcado se quiser só o resumo.</span>
+        </label>
+        <button type="button" class="btn btn-primary" id="rel-modal-gerar" style="width:auto;margin-top:0.25rem">📥 Gerar PDF</button>
+      </div>
+    </div>
+  </section>
+
   <section id="tab-congelacoes" class="tab-section">
+    <div style="background:#b45309;color:#fff;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.88rem;display:flex;align-items:center;gap:10px">
+      <span style="font-size:1.2em">🚧</span>
+      <span>Esta página está em manutenção. Alguns recursos podem não funcionar corretamente.</span>
+    </div>
     <div class="grid-2">
+
       <div class="card">
-        <div class="card-title">🧊 Registrar Congelação</div>
-        <form id="cong-form" class="form-grid">
+        <div class="card-title">❄️ Registrar Congelação</div>
+        <form id="cong-form" class="form-grid" autocomplete="off">
           <div class="field">
-            <label>Descrição / Caso</label>
-            <input type="text" id="cong-name" placeholder="ex: congelação mama" required>
+            <label>Nome / Identificação</label>
+            <input type="text" id="cong-nome" placeholder="ex: Tireoide, Mama…" required>
           </div>
+          <div class="form-row">
+            <div class="field">
+              <label>Lâminas</label>
+              <input type="number" id="cong-laminas" placeholder="0" min="0" required>
+            </div>
+            <div class="field">
+              <label>Data de realização</label>
+              <input type="date" id="cong-data-realizacao" required>
+            </div>
+          </div>
+          <label class="freeze-toggle cong-fh-toggle" id="cong-fh-label">
+            <input type="checkbox" id="cong-fora-horario" class="cong-fh-cb">
+            🌙 Fora do horário (sem pontuação)
+          </label>
+          <div class="cong-optional-sep"><span>Dados para liberação (opcional)</span></div>
           <div class="field">
-            <label>Data</label>
-            <input type="date" id="cong-data" required>
+            <label>FAP</label>
+            <input type="text" id="cong-fap" placeholder="Preencher ao receber…">
           </div>
-          <button type="submit" class="btn btn-primary">🧊 Registrar</button>
+          <div class="field" id="cong-lib-field">
+            <label>Data de liberação</label>
+            <input type="date" id="cong-data-liberacao">
+          </div>
+          <button type="submit" class="btn btn-primary">❄️ Registrar Congelação</button>
         </form>
       </div>
+
       <div class="card">
-        <div class="card-title">📋 Congelações Registradas</div>
-        <div class="cong-counter">
-          <div class="cong-num" id="cong-total">0</div>
-          <div class="cong-label">congelações<br>no total</div>
+        <div class="card-title">
+          📊 Resumo
+          <span id="cong-period-label" style="font-weight:500;color:var(--text-3);font-size:0.8rem;margin-left:4px">Este Mês</span>
         </div>
-        <div id="cong-list">
-          <div class="empty-state"><div class="empty-icon">🧊</div><p>Nenhuma congelação registrada.</p></div>
+        <div class="period-summary" style="flex-wrap:wrap">
+          <div class="ps-card"><div class="ps-val c1" id="cong-stat-total">0</div><div class="ps-lbl">Total</div></div>
+          <div class="ps-card"><div class="ps-val c2" id="cong-stat-lam">0</div><div class="ps-lbl">Lâminas</div></div>
+          <div class="ps-card"><div class="ps-val c3" id="cong-stat-inhor">0</div><div class="ps-lbl">No horário</div></div>
+          <div class="ps-card"><div class="ps-val" style="color:var(--accent)" id="cong-stat-fora">0</div><div class="ps-lbl">Fora horário</div></div>
+          <div class="ps-card"><div class="ps-val" style="color:var(--orange)" id="cong-stat-aberto">0</div><div class="ps-lbl">Em aberto</div></div>
         </div>
       </div>
+
+    </div>
+
+    <div class="card">
+      <div class="period-bar" id="cong-period-bar">
+        <button class="period-btn" data-period="week">Esta Semana</button>
+        <button class="period-btn active" data-period="month">Este Mês</button>
+        <button class="period-btn" data-period="year">Este Ano</button>
+        <button class="period-btn" data-period="all">Total</button>
+      </div>
+      <div id="cong-list">
+        <div class="empty-state"><div class="empty-icon">❄️</div><p>Nenhuma congelação registrada.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─ TAB: RECORDS ─────────────────────────────────────────────────────── -->
+  <section id="tab-records" class="tab-section">
+    <div id="records-container">
+      <!-- dinamicamente preenchido por records.js -->
+    </div>
+  </section>
+
+  <!-- ─ TAB: OBSERVAÇÕES ──────────────────────────────────────────────────── -->
+  <section id="tab-observacoes" class="tab-section">
+    <div class="card">
+      <div class="obs-month-nav">
+        <button class="obs-nav-btn" id="obs-prev-month">‹</button>
+        <span class="obs-month-label" id="obs-month-label"></span>
+        <button class="obs-nav-btn" id="obs-next-month">›</button>
+      </div>
+      <div class="obs-legend">
+        <span><span class="obs-legend-dot"></span> com observação</span>
+        <span>🧊 dia de congelação</span>
+      </div>
+      <div class="obs-calendar" id="obs-calendar"></div>
     </div>
   </section>
 
 </main>
 
-<!-- ─ MODAL – EXPORT / IMPORT ──────────────────────────────────────────────── -->
-<div class="modal-overlay" id="modal-io">
+<!-- ─ MODAL – OBSERVAÇÕES DO DIA ────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-obs">
   <div class="modal">
     <div class="modal-title">
-      💾 Exportar / Importar
+      🗒️ <span id="obs-modal-date-label">–</span>
+      <button class="modal-close" id="modal-obs-close">✕</button>
+    </div>
+    <p style="font-size:0.78rem;color:var(--text-3);margin-bottom:1.25rem">
+      Campos opcionais — preencha apenas o que quiser.
+    </p>
+    <div class="form-grid">
+      <div class="form-row">
+        <div class="field">
+          <label>Casos no monitor – manhã</label>
+          <input type="number" id="obs-casos-inicio" placeholder="Opcional…" min="0">
+        </div>
+        <div class="field">
+          <label>Casos no monitor – fim do dia</label>
+          <input type="number" id="obs-casos-fim" placeholder="Opcional…" min="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>Observações / Ocorrências do dia</label>
+        <textarea id="obs-texto" placeholder="Descreva ocorrências ou acontecimentos deste dia…" rows="5"></textarea>
+      </div>
+      <div class="modal-actions" style="margin-top:0.25rem">
+        <button type="button" class="btn btn-ghost" id="obs-modal-delete" style="margin-top:0;width:auto">🗑️ Limpar dia</button>
+        <button type="button" class="btn btn-primary" id="obs-modal-save" style="margin-top:0;width:auto">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─ MODAL – CAMPOS EXTRAS ─────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-campos">
+  <div class="modal">
+    <div class="modal-title">
+      ⚙️ Campos Extras
+      <button class="modal-close" id="modal-campos-close">✕</button>
+    </div>
+    <div id="campos-list" style="min-height:2rem;margin-bottom:1rem"></div>
+    <div class="form-grid">
+      <div class="form-row">
+        <div class="field">
+          <label>Nome do campo</label>
+          <input type="text" id="new-campo-name" placeholder="ex: Observação" maxlength="30">
+        </div>
+        <div class="field">
+          <label>Tipo</label>
+          <select id="new-campo-type">
+            <option value="text">Texto</option>
+            <option value="number">Número</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-add-campo">+ Adicionar Campo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─ MODAL – GERENCIAR TIPOS ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-tipos">
+  <div class="modal">
+    <div class="modal-title">
+      🏷️ Gerenciar Tipos
+      <button class="modal-close" id="modal-tipos-close">✕</button>
+    </div>
+    <p style="font-size:0.75rem;color:var(--text-3);margin:0 0 0.75rem">
+      Use ▲▼ para reordenar (deixe os que você mais usa no topo) e ✕ para remover
+      da sua lista. Vale só para a sua conta.
+    </p>
+    <div id="tipos-manage-list" class="tipos-manage-list"></div>
+    <div id="tipos-removed-wrap" style="display:none;margin-top:1rem">
+      <div class="card-title" style="font-size:0.8rem;padding:0 0 0.4rem">Removidos — toque para restaurar</div>
+      <div id="tipos-removed-list" class="tipos-removed-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─ MODAL – NOME DE EXIBIÇÃO ─────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-nome">
+  <div class="modal">
+    <div class="modal-title">👋 Como podemos te chamar?</div>
+    <p style="font-size:0.8rem;color:var(--text-3);margin:0 0 1rem">
+      Digite seu nome. Ele aparece no lugar do e-mail e é o que seus colegas veem
+      quando um caso é liberado em conjunto.
+    </p>
+    <div class="form-grid">
+      <div class="field">
+        <label>Seu nome</label>
+        <input type="text" id="nome-input" placeholder="ex: Dr. Guilherme" maxlength="40">
+      </div>
+      <button class="btn btn-primary" id="btn-save-nome">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─ MODAL – NOVIDADES ────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-novidades">
+  <div class="modal novidades-modal">
+    <img src="Choppers/novidades.png" alt="Chopper com presente" class="novidades-img">
+    <div class="novidades-title">🎁 O Chopper tem novidades!</div>
+    <p class="novidades-intro">Andei estudando uns truques novos, Doctor! Olha só o que preparei:</p>
+    <ul class="novidades-list">
+      <li>📄 <b>Relatório em PDF</b> — nova aba "Relatório" no menu: escolha o período e baixe um PDF com a pontuação de cada dia, as médias por dia/semana/mês trabalhado, suas observações e, se quiser, a lista de casos liberados.</li>
+      <li>🎯 <b>Script do Tampermonkey pronto na hora</b> — em Ferramentas → Automação, é só digitar a senha de assinatura do Motion e baixar o script já configurado com seu endpoint e seus tipos, sem precisar editar nada na mão.</li>
+      <li>👥 <b>Liberar em conjunto ficou mais simples</b> — agora é só escolher o colega numa listinha na hora de lançar o caso. Não precisa mais cadastrar e-mail de ninguém antes!</li>
+      <li>📜 <b>Records com cara nova</b> — botei uma cartinha minha lá no topo contando a sua história de produção (tempo de app, recordes, dia mais puxado...) antes dos cards, ficou bem mais fácil de ler.</li>
+      <li>⚡ <b>App mais leve</b> — arrumei um monte de coisa por baixo dos panos pra carregar mais rápido, principalmente pra quem já tem a conta cheia de casos.</li>
+    </ul>
+    <div class="novidades-actions">
+      <button class="btn btn-ghost" id="btn-novidades-later">Ver depois</button>
+      <button class="btn btn-primary" id="btn-novidades-dismiss">Entendi, não mostrar de novo 💙</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─ MODAL – EXPORT / IMPORT ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-io">
+  <div class="modal modal-wide">
+    <div class="modal-title">
+      💾 Ferramentas
       <button class="modal-close" id="modal-close">✕</button>
     </div>
-    <div class="form-grid">
+    <div class="io-tabs">
+      <button class="io-tab active" data-io="email"  type="button">📧 Lançar por e-mail</button>
+      <button class="io-tab"        data-io="backup" type="button">💾 Backup</button>
+      <button class="io-tab"        data-io="auto"   type="button">🔗 Automação</button>
+    </div>
+
+    <div class="io-panel active form-grid" id="io-panel-email">
+      <p style="font-size:0.78rem;color:var(--text-2);margin:0 0 0.75rem">
+        Sem acesso ao site? Mande os casos por e-mail que eles caem sozinhos aqui.
+        Um caso por linha: <b>FAP&nbsp;&nbsp;tipo&nbsp;&nbsp;lâminas&nbsp;&nbsp;pontos</b>.
+      </p>
+
+      <label style="font-size:0.72rem;color:var(--text-3)">Envie para</label>
+      <div id="email-addr-box" style="font-size:0.72rem;font-family:monospace;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:0.45rem 0.7rem;margin:2px 0 0.6rem;color:var(--text-2);word-break:break-all"></div>
+
+      <label style="font-size:0.72rem;color:var(--text-3)">No assunto, use seu nome</label>
+      <div id="email-nome-box" style="font-size:0.8rem;font-weight:700;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:0.45rem 0.7rem;margin:2px 0 0.6rem;color:var(--accent)"></div>
+
+      <label style="font-size:0.72rem;color:var(--text-3);display:flex;justify-content:space-between;align-items:center">
+        Seus tipos (copie a grafia exata)
+        <button type="button" class="btn btn-ghost" id="btn-copy-tipos" style="width:auto;margin:0;padding:2px 10px;font-size:0.7rem">📋 Copiar</button>
+      </label>
+      <textarea id="email-tipos-box" readonly
+        style="margin-top:2px;font-family:monospace;font-size:0.72rem;width:100%;height:110px;resize:vertical;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:0.5rem;color:var(--text-2);box-sizing:border-box"></textarea>
+
+      <div style="font-size:0.72rem;color:var(--text-3);background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:0.5rem 0.7rem;margin-top:0.6rem;font-family:monospace;white-space:pre-line">Exemplo:
+9703.0370.3425  bx gas    3  5
+8772.0040.0009  bx colon  2  3</div>
+
+    </div><!-- /io-panel-email -->
+
+    <div class="io-panel form-grid" id="io-panel-backup">
+      <p style="font-size:0.78rem;color:var(--text-2);margin:0 0 0.75rem">
+        Guarde uma cópia dos seus dados ou restaure a partir de um arquivo exportado.
+      </p>
       <div style="margin-bottom:0.5rem">
         <button class="btn btn-ghost" id="btn-export" style="width:100%">⬇️ Exportar todos os dados (JSON)</button>
+      </div>
+
+      <div style="margin-bottom:0.75rem;padding-top:0.5rem;border-top:1px solid var(--border)">
+        <label style="font-size:0.72rem;color:var(--text-3)">Sincronização</label>
+        <p style="font-size:0.72rem;color:var(--text-3);margin:2px 0 0.5rem">
+          O app já atualiza sozinho quando há caso novo. Use este botão só se editar ou apagar
+          um caso de mais de 7 dias atrás e quiser ver a mudança na hora, sem esperar.
+        </p>
+        <button class="btn btn-ghost" id="btn-force-refresh" style="width:100%">🔄 Atualizar agora</button>
       </div>
       <div class="field" style="margin-top:0.5rem">
         <label>Importar JSON</label>
@@ -349,7 +672,127 @@
         <button class="btn btn-ghost" id="btn-reset">🗑️ Resetar para dados Notion</button>
         <button class="btn btn-primary" id="btn-import" style="width:auto;margin-top:0">⬆️ Importar</button>
       </div>
+
+    </div><!-- /io-panel-backup -->
+
+    <div class="io-panel form-grid" id="io-panel-auto">
+      <p style="font-size:0.75rem;color:var(--text-3);margin:0 0 0.75rem">
+        Envie entradas automaticamente via POST para a URL abaixo. Cada usuário tem uma URL exclusiva.
+      </p>
+      <div id="webhook-url-box" style="font-size:0.68rem;font-family:monospace;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:0.5rem 0.75rem;word-break:break-all;margin-bottom:0.75rem;color:var(--text-2);min-height:2.25rem;display:flex;align-items:center">
+        Nenhum token gerado ainda.
+      </div>
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-ghost" id="btn-copy-webhook" style="flex:1;margin-top:0" disabled>📋 Copiar URL</button>
+        <button class="btn btn-primary" id="btn-gen-webhook" style="flex:1;margin-top:0">🔑 Gerar Token</button>
+      </div>
+
+      <button class="btn btn-ghost" id="btn-export-tipos" style="width:100%;margin-top:0.5rem">📤 Exportar tipos para o script</button>
+      <textarea id="tipos-script-output" readonly placeholder="Clique no botão acima para gerar…"
+        style="display:none;margin-top:0.5rem;font-family:monospace;font-size:0.68rem;width:100%;height:130px;resize:vertical;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:0.5rem;color:var(--text-2);box-sizing:border-box"></textarea>
+
+      <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border)">
+        <label style="font-size:0.72rem;color:var(--text-3)">🎯 Script pronto do Tampermonkey</label>
+        <p style="font-size:0.72rem;color:var(--text-3);margin:2px 0 0.6rem">
+          Gere o arquivo do script já com seu endpoint, sua senha de assinatura digital e seus
+          tipos — é só instalar no Tampermonkey. A senha fica só no arquivo baixado no seu
+          computador; não é enviada nem guardada em nenhum servidor.
+        </p>
+        <input type="password" id="motion-script-senha" placeholder="Senha de assinatura digital do Motion" autocomplete="off"
+          style="width:100%;box-sizing:border-box;padding:0.5rem 0.7rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:0.8rem;margin-bottom:0.5rem">
+        <button class="btn btn-primary" id="btn-gen-motion-script" style="width:100%;margin-top:0">📥 Gerar e baixar script</button>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- ─ MODAL – EDITAR ENTRADA ─────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal">
+    <div class="modal-title">
+      ✏️ Editar Registro
+      <button class="modal-close" id="modal-edit-close">✕</button>
+    </div>
+    <form id="edit-form" class="form-grid" autocomplete="off">
+      <div class="field">
+        <label>FAP</label>
+        <input type="text" id="e-fap" required>
+      </div>
+      <div class="field">
+        <label>Data</label>
+        <input type="date" id="e-data" required>
+      </div>
+      <div class="field">
+        <label>Tipo(s)</label>
+        <div id="e-tipos-wrap" class="edit-tipos-wrap"></div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Lâminas</label>
+          <input type="number" id="e-laminas" min="0" required>
+        </div>
+        <div class="field">
+          <label>Pontos</label>
+          <input type="number" id="e-pontos" min="0" step="0.5" required>
+        </div>
+      </div>
+      <label class="freeze-toggle segunda-ass-toggle" id="e-segunda-ass-label" style="margin-top:2px">
+        <input type="checkbox" id="e-segunda-assinatura" class="segunda-ass-cb">
+        ✍️ Segunda Assinatura
+      </label>
+      <label class="freeze-toggle interessante-toggle" id="e-interessante-label">
+        <input type="checkbox" id="e-interessante" class="interessante-cb">
+        ⭐ Caso interessante
+      </label>
+      <div id="e-extra-fields"></div>
+      <div class="modal-actions" style="margin-top:0.5rem">
+        <button type="button" class="btn btn-ghost" id="btn-edit-cancel" style="margin-top:0;width:auto">Cancelar</button>
+        <button type="submit" class="btn btn-primary" style="margin-top:0;width:auto">💾 Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ─ MODAL – EDITAR CONGELAÇÃO ────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-cong-edit">
+  <div class="modal">
+    <div class="modal-title">
+      ❄️ Editar Congelação
+      <button class="modal-close" id="modal-cong-edit-close">✕</button>
+    </div>
+    <form id="cong-edit-form" class="form-grid" autocomplete="off">
+      <div class="field">
+        <label>Nome / Identificação</label>
+        <input type="text" id="ce-nome" required>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Lâminas</label>
+          <input type="number" id="ce-laminas" min="0" required>
+        </div>
+        <div class="field">
+          <label>Data de realização</label>
+          <input type="date" id="ce-data-realizacao" required>
+        </div>
+      </div>
+      <label class="freeze-toggle cong-fh-toggle" id="ce-fh-label">
+        <input type="checkbox" id="ce-fora-horario" class="cong-fh-cb">
+        🌙 Fora do horário (sem pontuação)
+      </label>
+      <div class="cong-optional-sep"><span>Dados para liberação</span></div>
+      <div class="field">
+        <label>FAP</label>
+        <input type="text" id="ce-fap" placeholder="ex: 9703.0370.3425">
+      </div>
+      <div class="field" id="ce-lib-field">
+        <label>Data de liberação</label>
+        <input type="date" id="ce-data-liberacao">
+      </div>
+      <div class="modal-actions" style="margin-top:0.5rem">
+        <button type="button" class="btn btn-ghost" id="btn-cong-edit-cancel" style="margin-top:0;width:auto">Cancelar</button>
+        <button type="submit" class="btn btn-primary" style="margin-top:0;width:auto">💾 Salvar</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -357,14 +800,8 @@
 <div id="toast"></div>
 
 <!-- ─ Decorative background ───────────────────────────────────────────────── -->
-<svg class="chopper-bg" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
-  <path d="M22 52 Q14 28 22 10 Q30 28 28 52" fill="#c62828"/>
-  <path d="M78 52 Q86 28 78 10 Q70 28 72 52" fill="#c62828"/>
-  <path d="M18 56 Q18 14 50 9 Q82 14 82 56 Z" fill="#c62828"/>
-  <rect x="8" y="56" width="84" height="16" rx="8" fill="#b71c1c"/>
-  <rect x="46" y="20" width="8" height="30" fill="white" rx="4"/>
-  <rect x="36" y="30" width="28" height="10" fill="white" rx="5"/>
-</svg>
+<img src="Choppers/academia1.png" alt="Background Deco" class="chopper-bg">
+<img src="Choppers/algodao.png" alt="Background Deco" class="chopper2-bg">
 
 </div><!-- #app-shell -->
 
@@ -374,8 +811,15 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@4.2.0/dist/chartjs-chart-treemap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
 <script src="js/charts.js"></script>
+<script src="js/records.js"></script>
+<script src="js/congelacoes.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/motion-script.js"></script>
 </body>
 </html>
