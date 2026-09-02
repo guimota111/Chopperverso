@@ -1,5 +1,5 @@
 // ── ChopperVerso – Data Layer (Firestore) ─────────────────────────────────────
-// Persistência via Firebase Firestore. Estrutura: users/{uid}/entries  &  users/{uid}/congelacoes
+// Persistência via Firebase Firestore. Estrutura: users/{uid}/entries  &  users/{uid}/meta
 
 let TIPOS = [
   'bx gas', 'Bx esof', 'bx duod', 'bx colon',
@@ -28,6 +28,9 @@ const TIPO_COLORS = {
   'enterectomia não neoplásica': '#8B5CF6',
   'Congelação':                  '#0EA5E9'
 };
+
+// Ordem padrão dos tipos-base (snapshot antes de qualquer personalização do usuário)
+const TIPOS_BASE_ORDER = [...TIPOS];
 
 // ─ Seed data (exportado do Notion – Abril 2026) ──────────────────────────────
 const SEED_ENTRIES = [
@@ -136,11 +139,27 @@ const SEED_ENTRIES = [
 ];
 
 // ─ Firestore helpers ──────────────────────────────────────────────────────────
-let _currentUid = null;
+let _currentUid     = null;
+let _entriesCache   = null;
+let _congCache      = null;
+let _entriesVersion = 0;
+let _congVersion    = 0;
+let _metaUnsub      = null;
+const _CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // rede de segurança: força releitura completa mesmo se a versão não mudar (o controle de versão já cobre mudanças reais — isso é só um limite pra não confiar em cache "pra sempre")
 
-function setCurrentUid(uid) { _currentUid = uid; }
+function setCurrentUid(uid) {
+  if (_metaUnsub) { _metaUnsub(); _metaUnsub = null; }
+  _currentUid = uid; _entriesCache = null; _congCache = null; _observations = {}; _webhookToken = null; _displayName = ''; _changelogSeen = null;
+  _entriesVersion = 0; _congVersion = 0; _directoryCache = null;
+}
 
-let _customTipos = [];
+let _customTipos  = [];
+let _freezeDays   = [];   // ISO date strings: ['2026-04-10', ...]
+let _customFields = [];   // [{name, type}]
+let _observations = {};   // keyed by ISO date: { '2026-05-07': { casosInicio, casosFim, texto } }
+let _webhookToken = null;
+let _displayName  = '';    // nome de exibição do usuário logado
+let _changelogSeen = null; // versão do aviso de novidades que o usuário já dispensou
 
 function _metaRef() {
   return db.collection('users').doc(_currentUid).collection('meta').doc('config');
@@ -148,13 +167,65 @@ function _metaRef() {
 
 async function loadCustomTipos() {
   try {
-    const doc = await _metaRef().get();
-    _customTipos = doc.exists ? (doc.data().customTipos || []) : [];
-    _customTipos.forEach(t => {
-      if (!TIPOS.includes(t.name)) TIPOS.push(t.name);
-      TIPO_COLORS[t.name] = t.color;
-    });
-  } catch (_) { _customTipos = []; }
+    const doc  = await _metaRef().get();
+    const data = doc.exists ? doc.data() : {};
+    _customTipos  = data.customTipos  || [];
+    _freezeDays   = data.freezeDays   || [];
+    _customFields = data.customFields || [];
+    _observations = data.observations || {};
+    _webhookToken = data.webhookToken || null;
+    _displayName   = data.displayName   || '';
+    _changelogSeen = data.changelogSeen || null;
+    _entriesVersion = data.entriesVersion || 0;
+    _congVersion    = data.congVersion    || 0;
+    _customTipos.forEach(t => { TIPO_COLORS[t.name] = t.color; });
+
+    // Monta a lista efetiva de tipos a partir da ordem salva pelo usuário.
+    // Primeira vez (sem tiposOrder): usa base + customizados na ordem padrão.
+    const known = [...TIPOS_BASE_ORDER, ..._customTipos.map(t => t.name)];
+    let order   = Array.isArray(data.tiposOrder) ? data.tiposOrder.filter(n => known.includes(n)) : null;
+    if (!order || order.length === 0) order = [...known];
+
+    const seen = new Set();
+    TIPOS.length = 0;
+    order.forEach(n => { if (!seen.has(n)) { seen.add(n); TIPOS.push(n); } });
+  } catch (_) { _customTipos = []; _freezeDays = []; _customFields = []; }
+}
+
+// ─ Gerenciar tipos (ordem / remoção / restauração) ─────────────────────────────
+function getTipos() { return [...TIPOS]; }
+
+// Tipos conhecidos (base + customizados) que o usuário removeu da sua lista
+function getRemovedTipos() {
+  const known = [...TIPOS_BASE_ORDER, ..._customTipos.map(t => t.name)];
+  return known.filter(n => !TIPOS.includes(n));
+}
+
+async function _persistTipoOrder() {
+  await _metaRef().set({ tiposOrder: [...TIPOS] }, { merge: true });
+}
+
+async function moveTipo(name, dir) {
+  const i = TIPOS.indexOf(name);
+  if (i === -1) return;
+  const j = dir < 0 ? i - 1 : i + 1;
+  if (j < 0 || j >= TIPOS.length) return;
+  [TIPOS[i], TIPOS[j]] = [TIPOS[j], TIPOS[i]];
+  await _persistTipoOrder();
+}
+
+async function removeTipoFromList(name) {
+  const i = TIPOS.indexOf(name);
+  if (i === -1) return;
+  TIPOS.splice(i, 1);
+  await _persistTipoOrder();
+}
+
+async function restoreTipo(name) {
+  const known = [...TIPOS_BASE_ORDER, ..._customTipos.map(t => t.name)];
+  if (TIPOS.includes(name) || !known.includes(name)) return;
+  TIPOS.push(name);
+  await _persistTipoOrder();
 }
 
 async function addCustomTipo(name, color) {
@@ -163,8 +234,121 @@ async function addCustomTipo(name, color) {
   _customTipos.push({ name: trimmed, color });
   TIPOS.push(trimmed);
   TIPO_COLORS[trimmed] = color;
-  await _metaRef().set({ customTipos: _customTipos }, { merge: true });
+  await _metaRef().set({ customTipos: _customTipos, tiposOrder: [...TIPOS] }, { merge: true });
   return true;
+}
+
+// ─ Nome de exibição ────────────────────────────────────────────────────────────
+function getDisplayName() { return _displayName; }
+function hasDisplayName() { return !!(_displayName && _displayName.trim()); }
+
+async function saveDisplayName(nome) {
+  _displayName = String(nome || '').trim();
+  await _metaRef().set({ displayName: _displayName }, { merge: true });
+  await syncDirectoryEntry();
+}
+
+// ─ Diretório de usuários (pra montar a lista de colegas, sem digitar e-mail) ───
+// Um único doc "directory/index" com um mapa {uid: {nome, email}} — só nome+e-mail,
+// nada sensível. É de propósito um doc só (não um por usuário): ler o diretório
+// inteiro pra montar a lista de colegas custa sempre 1 leitura, não 1 por usuário.
+function _directoryRef() { return db.collection('directory').doc('index'); }
+
+let _directoryCache = null; // em memória só — 1 leitura por sessão, reseta a cada login/reload
+
+async function syncDirectoryEntry() {
+  if (!_displayName || !auth.currentUser) return;
+  await _directoryRef().set(
+    { [_currentUid]: { nome: _displayName, email: auth.currentUser.email || '' } },
+    { merge: true }
+  );
+  _directoryCache = null; // nome pode ter mudado — força reconferir na próxima leitura
+}
+
+async function getDirectory() {
+  if (_directoryCache) return _directoryCache;
+  const doc = await _directoryRef().get();
+  if (!doc.exists) return (_directoryCache = []);
+  _directoryCache = Object.entries(doc.data())
+    .filter(([uid]) => uid !== _currentUid)
+    .map(([uid, v]) => ({ uid, ...v }))
+    .filter(u => u.nome && u.email)
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+  return _directoryCache;
+}
+
+// ─ Aviso de novidades ──────────────────────────────────────────────────────────
+function getChangelogSeen() { return _changelogSeen; }
+
+async function markChangelogSeen(version) {
+  _changelogSeen = version;
+  await _metaRef().set({ changelogSeen: version }, { merge: true });
+}
+
+// Lança o caso na conta do autor e de cada colega via Cloud Function (Admin SDK).
+// A lista de "com quem posso liberar em conjunto" vem direto do diretório
+// (getDirectory) — não precisa mais de um cadastro de colegas separado.
+async function addSharedEntry(entry, colegaEmails) {
+  const idToken = await auth.currentUser.getIdToken();
+  const resp = await fetch(
+    'https://us-central1-chopperverso.cloudfunctions.net/addSharedEntry',
+    {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...entry, colegas: colegaEmails }),
+    }
+  );
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data.error || ('HTTP ' + resp.status));
+  _entriesCache = null;   // a cópia do autor foi gravada pelo servidor; recarrega
+  _clearCache('entriesHot'); // servidor já bumpou a versão; garante que não usamos cache antigo
+  _clearCache('entriesCold');
+  return data;            // { ok, inseridos, naoEncontrados }
+}
+
+// ─ Freeze days ────────────────────────────────────────────────────────────────
+function getFreezeDays()   { return [..._freezeDays]; }
+function isFreezeDay(date) { return _freezeDays.includes(date); }
+
+async function toggleFreezeDay(date) {
+  const idx = _freezeDays.indexOf(date);
+  if (idx === -1) _freezeDays.push(date);
+  else            _freezeDays.splice(idx, 1);
+  await _metaRef().set({ freezeDays: _freezeDays }, { merge: true });
+  return isFreezeDay(date);
+}
+
+// ─ Observations ──────────────────────────────────────────────────────────────
+function getObservation(date)   { return _observations[date] || null; }
+function getAllObservations()   { return { ..._observations }; }
+
+async function saveObservation(date, { casosInicio, casosFim, texto }) {
+  const obs = { texto: texto || '' };
+  if (casosInicio !== null && casosInicio !== undefined && casosInicio !== '') obs.casosInicio = Number(casosInicio);
+  if (casosFim    !== null && casosFim    !== undefined && casosFim    !== '') obs.casosFim    = Number(casosFim);
+  _observations[date] = obs;
+  await _metaRef().set({ observations: _observations }, { merge: true });
+}
+
+async function deleteObservation(date) {
+  delete _observations[date];
+  await _metaRef().set({ observations: _observations }, { merge: true });
+}
+
+// ─ Custom extra fields ────────────────────────────────────────────────────────
+function getCustomFields() { return [..._customFields]; }
+
+async function addCustomField(name, type) {
+  const trimmed = name.trim();
+  if (!trimmed || _customFields.some(f => f.name === trimmed)) return false;
+  _customFields.push({ name: trimmed, type });
+  await _metaRef().set({ customFields: _customFields }, { merge: true });
+  return true;
+}
+
+async function removeCustomField(name) {
+  _customFields = _customFields.filter(f => f.name !== name);
+  await _metaRef().set({ customFields: _customFields }, { merge: true });
 }
 
 function _entriesRef() {
@@ -175,38 +359,245 @@ function _congRef() {
   return db.collection('users').doc(_currentUid).collection('congelacoes');
 }
 
+// ─ Cache local (localStorage) com controle de versão ──────────────────────────
+// Evita reler a coleção inteira a cada carregamento de página: só busca de novo
+// no Firestore quando entriesVersion/congVersion (gravados em meta/config) mudam,
+// ou quando o cache local passa de _CACHE_TTL_MS (rede de segurança).
+function _cacheKey(kind) { return `cv_${kind}_${_currentUid}`; }
+
+function _readCache(kind) {
+  try {
+    const raw = localStorage.getItem(_cacheKey(kind));
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) { return null; }
+}
+
+function _writeCache(kind, version, data, extra = {}) {
+  try {
+    localStorage.setItem(_cacheKey(kind), JSON.stringify({ version, cachedAt: Date.now(), ...extra, data }));
+  } catch (_) { /* localStorage indisponível/cheio — segue sem cache persistente */ }
+}
+
+function _clearCache(kind) {
+  try { localStorage.removeItem(_cacheKey(kind)); } catch (_) {}
+}
+
+async function _bumpEntriesVersion() {
+  _entriesVersion++;
+  await _metaRef().set({ entriesVersion: _entriesVersion }, { merge: true });
+}
+
+async function _bumpCongVersion() {
+  _congVersion++;
+  await _metaRef().set({ congVersion: _congVersion }, { merge: true });
+}
+
+// Escuta o doc meta/config (leve, 1 documento) e detecta quando entriesVersion/
+// congVersion mudam por fora desta aba — outro dispositivo, colega, e-mail ou
+// webhook — disparando o callback pra que a UI se atualize sozinha, sem F5.
+function watchForUpdates(onChange) {
+  if (_metaUnsub) _metaUnsub();
+  _metaUnsub = _metaRef().onSnapshot(doc => {
+    if (!doc.exists) return;
+    const data = doc.data();
+    const newEntriesVersion = data.entriesVersion || 0;
+    const newCongVersion    = data.congVersion    || 0;
+    const entriesChanged = newEntriesVersion !== _entriesVersion;
+    const congChanged    = newCongVersion    !== _congVersion;
+    _entriesVersion = newEntriesVersion;
+    _congVersion    = newCongVersion;
+    if (entriesChanged) _entriesCache = null;
+    if (congChanged)    _congCache    = null;
+    if ((entriesChanged || congChanged) && typeof onChange === 'function') {
+      onChange({ entriesChanged, congChanged });
+    }
+  });
+}
+
 // ─ Entries CRUD ───────────────────────────────────────────────────────────────
+// Casos são lidos em duas fatias pra não reler o histórico inteiro a cada mudança:
+//   • "quente" (últimos HOT_WINDOW_DAYS dias) — reconferida sempre que entriesVersion muda (barato).
+//   • "fria" (tudo antes disso) — quase não muda, então só é relida a cada _COLD_CACHE_TTL_MS
+//     ou quando o usuário força ("Atualizar agora" nas configurações).
+// O corte da fatia fria fica fixo entre uma releitura completa e outra: a fatia quente sempre
+// consulta a partir desse mesmo corte (não de "hoje − 7 dias"), pra nunca deixar um buraco de
+// dias sem cobertura enquanto a fria envelhece.
+const HOT_WINDOW_DAYS     = 7;
+const _COLD_CACHE_TTL_MS  = 30 * 24 * 60 * 60 * 1000;
+
+function _hotCutoffToday() {
+  const d = new Date();
+  d.setDate(d.getDate() - HOT_WINDOW_DAYS);
+  return _localISO(d);
+}
+
 async function getEntries() {
-  const snap = await _entriesRef().get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (_entriesCache) return _entriesCache;
+
+  const cold      = _readCache('entriesCold');
+  const coldFresh = cold && (Date.now() - cold.cachedAt) < _COLD_CACHE_TTL_MS;
+
+  if (!coldFresh) {
+    // Releitura completa: refaz o corte quente/fria do zero.
+    const cutoff = _hotCutoffToday();
+    const snap   = await _entriesRef().get();
+    const all    = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _writeCache('entriesCold', null, all.filter(e => e.data < cutoff), { cutoff });
+    _writeCache('entriesHot', _entriesVersion, all.filter(e => e.data >= cutoff), { cutoff });
+    _entriesCache = all;
+    return _entriesCache;
+  }
+
+  // Fria está fresca: só precisa reconferir a fatia quente (poucos documentos).
+  const cutoff    = cold.cutoff;
+  const hotCached = _readCache('entriesHot');
+  let hotData;
+  if (hotCached && hotCached.version === _entriesVersion && hotCached.cutoff === cutoff
+      && (Date.now() - hotCached.cachedAt) < _CACHE_TTL_MS) {
+    hotData = hotCached.data;
+  } else {
+    const snap = await _entriesRef().where('data', '>=', cutoff).get();
+    hotData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _writeCache('entriesHot', _entriesVersion, hotData, { cutoff });
+  }
+  _entriesCache = [...cold.data, ...hotData];
+  return _entriesCache;
+}
+
+// Regrava as fatias quente/fria em localStorage a partir do _entriesCache já corrigido em
+// memória — não custa leitura nenhuma no Firestore, só mantém o cache local coerente.
+// Preserva o cachedAt original da fatia fria (senão toda edição "renovaria" a rede de
+// segurança de 30 dias e ela nunca disparia).
+function _persistEntriesSplit() {
+  if (!_entriesCache) return;
+  const cold = _readCache('entriesCold');
+  if (!cold) return; // sem fria cacheada ainda — a próxima leitura refaz tudo do zero
+  const cutoff = cold.cutoff;
+  _writeCache('entriesHot',  _entriesVersion, _entriesCache.filter(e => e.data >= cutoff), { cutoff });
+  _writeCache('entriesCold', null,            _entriesCache.filter(e => e.data <  cutoff), { cutoff, cachedAt: cold.cachedAt });
 }
 
 async function addEntry(entry) {
-  await _entriesRef().add({ ...entry, createdAt: new Date().toISOString() });
+  const data = { ...entry, createdAt: new Date().toISOString() };
+  const ref  = await _entriesRef().add(data);
+  if (_entriesCache) _entriesCache.push({ id: ref.id, ...data });
+  await _bumpEntriesVersion();
+  _persistEntriesSplit();
 }
 
 async function deleteEntry(id) {
   await _entriesRef().doc(id).delete();
+  if (_entriesCache) _entriesCache = _entriesCache.filter(e => e.id !== id);
+  await _bumpEntriesVersion();
+  _persistEntriesSplit();
+}
+
+async function updateEntry(id, fields) {
+  await _entriesRef().doc(id).update(fields);
+  if (_entriesCache) {
+    const i = _entriesCache.findIndex(e => e.id === id);
+    if (i !== -1) _entriesCache[i] = { ..._entriesCache[i], ...fields };
+  }
+  await _bumpEntriesVersion();
+  _persistEntriesSplit();
+}
+
+// Força uma releitura completa (quente + fria + congelações), ignorando todos os caches —
+// usado pelo botão "Atualizar agora" nas configurações, pra quando alguém edita/apaga um
+// caso com mais de HOT_WINDOW_DAYS dias e quer ver o reflexo na hora, sem esperar a rede
+// de segurança de 30 dias.
+async function forceFullRefresh() {
+  _entriesCache = null;
+  _congCache    = null;
+  _clearCache('entriesHot');
+  _clearCache('entriesCold');
+  _clearCache('cong');
+  await Promise.all([getEntries(), getCongelacoes()]);
 }
 
 // ─ Congelações CRUD ───────────────────────────────────────────────────────────
 async function getCongelacoes() {
+  if (_congCache) return _congCache;
+
+  const cached = _readCache('cong');
+  if (cached && cached.version === _congVersion && (Date.now() - cached.cachedAt) < _CACHE_TTL_MS) {
+    _congCache = cached.data;
+    return _congCache;
+  }
+
   const snap = await _congRef().get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  _congCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  _writeCache('cong', _congVersion, _congCache);
+  return _congCache;
 }
 
 async function addCongelacao(cong) {
-  await _congRef().add({ ...cong, createdAt: new Date().toISOString() });
+  const data = { ...cong, createdAt: new Date().toISOString() };
+  const ref  = await _congRef().add(data);
+  if (_congCache) _congCache.push({ id: ref.id, ...data });
+  await _bumpCongVersion();
+  if (_congCache) _writeCache('cong', _congVersion, _congCache);
+}
+
+async function updateCongelacao(id, fields) {
+  await _congRef().doc(id).update(fields);
+  if (_congCache) {
+    const i = _congCache.findIndex(c => c.id === id);
+    if (i !== -1) _congCache[i] = { ..._congCache[i], ...fields };
+  }
+  await _bumpCongVersion();
+  if (_congCache) _writeCache('cong', _congVersion, _congCache);
 }
 
 async function deleteCongelacao(id) {
   await _congRef().doc(id).delete();
+  if (_congCache) _congCache = _congCache.filter(c => c.id !== id);
+  await _bumpCongVersion();
+  if (_congCache) _writeCache('cong', _congVersion, _congCache);
+}
+
+// ─ Webhook token ──────────────────────────────────────────────────────────────
+
+// Mesma lógica da Cloud Function — converte nome do tipo → id para o script
+function tipoToId(nome) {
+  return String(nome)
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function exportTiposParaScript() {
+  const linhas = TIPOS.map(t => `    { id: '${tipoToId(t)}', label: '${t}' }`);
+  return `TIPOS_DISPONIVEIS: [\n${linhas.join(',\n')}\n]`;
+}
+
+function getWebhookToken() { return _webhookToken; }
+
+async function generateWebhookToken() {
+  const idToken = await auth.currentUser.getIdToken();
+  const resp = await fetch(
+    'https://us-central1-chopperverso.cloudfunctions.net/generateWebhookToken',
+    {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' },
+    }
+  );
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  const data = await resp.json();
+  _webhookToken = data.token;
+  return _webhookToken;
 }
 
 // ─ Export / Import ────────────────────────────────────────────────────────────
 async function exportJSON() {
   const [entries, congelacoes] = await Promise.all([getEntries(), getCongelacoes()]);
-  return JSON.stringify({ version: 2, entries, congelacoes }, null, 2);
+  return JSON.stringify({
+    version: 4, entries, congelacoes,
+    freezeDays: _freezeDays,
+    customFields: _customFields,
+    observations: _observations,
+  }, null, 2);
 }
 
 async function importJSON(json) {
@@ -229,6 +620,27 @@ async function importJSON(json) {
     });
 
     await _commitBatches(ops);
+    _entriesCache = null;
+    _congCache    = null;
+    _clearCache('entriesHot');
+    _clearCache('entriesCold');
+    _clearCache('cong');
+    await _bumpEntriesVersion();
+    await _bumpCongVersion();
+
+    if (Array.isArray(parsed.freezeDays)) {
+      _freezeDays = parsed.freezeDays;
+      await _metaRef().set({ freezeDays: _freezeDays }, { merge: true });
+    }
+    if (Array.isArray(parsed.customFields)) {
+      _customFields = parsed.customFields;
+      await _metaRef().set({ customFields: _customFields }, { merge: true });
+    }
+    if (parsed.observations && typeof parsed.observations === 'object') {
+      _observations = parsed.observations;
+      await _metaRef().set({ observations: _observations }, { merge: true });
+    }
+
     return true;
   } catch (_) {
     return false;
@@ -244,6 +656,10 @@ async function resetToSeed() {
     ops.push({ type: 'set', ref: _entriesRef().doc(), data: { ...data, createdAt: e.data + 'T08:00:00Z' } });
   });
   await _commitBatches(ops);
+  _entriesCache = null;
+  _clearCache('entriesHot');
+  _clearCache('entriesCold');
+  await _bumpEntriesVersion();
 }
 
 async function _commitBatches(ops) {
