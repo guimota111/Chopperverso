@@ -3,3 +3,13 @@ js/firebase-config.js
 
 # Claude Code
 .claude/
+
+# Backup das imagens originais (pré-otimização) — não precisa ir pro repo
+Choppers_originais/
+
+# Dependências instaladas — reinstala com `npm install` dentro de functions/
+functions/node_modules/
+
+# Cache interno do Firebase CLI (hash dos arquivos já publicados) — muda a
+# cada deploy, não é código
+.firebase/
