@@ -85,6 +85,9 @@
     <button class="nav-btn" data-tab="congelacoes">
       <span class="icon">❄️</span> Congelações
     </button>
+    <button class="nav-btn" data-tab="feedbacks">
+      <span class="icon">💬</span> Feedbacks
+    </button>
   </nav>
 
   <div class="header-actions">
@@ -491,6 +494,22 @@
     </div>
   </section>
 
+  <!-- ─ TAB: FEEDBACKS ────────────────────────────────────────────────────── -->
+  <section id="tab-feedbacks" class="tab-section">
+    <div class="card fb-card">
+      <div class="card-title">💬 Feedbacks</div>
+      <p style="font-size:0.8rem;color:var(--text-3);margin:0 0 0.75rem">
+        Um mural só, que todo mundo que usa o ChopperVerso vê — tipo um grupo de zap.
+        Manda sugestão, bug, elogio, o que quiser, eu leio tudo!
+      </p>
+      <div class="fb-list" id="feedback-list"></div>
+      <div class="fb-input-row">
+        <input type="text" id="feedback-input" placeholder="Escreva sua mensagem…" maxlength="1000">
+        <button class="btn btn-primary" id="feedback-send" style="width:auto;margin:0">Enviar</button>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <!-- ─ MODAL – OBSERVAÇÕES DO DIA ────────────────────────────────────────────── -->
@@ -597,11 +616,9 @@
     <div class="novidades-title">🎁 O Chopper tem novidades!</div>
     <p class="novidades-intro">Andei estudando uns truques novos, Doctor! Olha só o que preparei:</p>
     <ul class="novidades-list">
-      <li>📄 <b>Relatório em PDF</b> — nova aba "Relatório" no menu: escolha o período e baixe um PDF com a pontuação de cada dia, as médias por dia/semana/mês trabalhado, suas observações e, se quiser, a lista de casos liberados.</li>
-      <li>🎯 <b>Script do Tampermonkey pronto na hora</b> — em Ferramentas → Automação, é só digitar a senha de assinatura do Motion e baixar o script já configurado com seu endpoint e seus tipos, sem precisar editar nada na mão.</li>
-      <li>👥 <b>Liberar em conjunto ficou mais simples</b> — agora é só escolher o colega numa listinha na hora de lançar o caso. Não precisa mais cadastrar e-mail de ninguém antes!</li>
-      <li>📜 <b>Records com cara nova</b> — botei uma cartinha minha lá no topo contando a sua história de produção (tempo de app, recordes, dia mais puxado...) antes dos cards, ficou bem mais fácil de ler.</li>
-      <li>⚡ <b>App mais leve</b> — arrumei um monte de coisa por baixo dos panos pra carregar mais rápido, principalmente pra quem já tem a conta cheia de casos.</li>
+      <li>📄 <b>Relatório em PDF</b> — foi a Monique que me pediu esse aqui, viu? Ela queria um jeito de tirar um relatório bonitinho do período trabalhado, e eu não ia deixar ela na mão! Agora tem uma aba "Relatório" ali no menu: escolhe as datas e eu devolvo um PDF com a pontuação de cada dia, suas médias por dia, semana e mês, suas observações e, se você quiser, até a listinha de casos liberados.</li>
+      <li>🎯 <b>Script do Tampermonkey pronto na hora</b> — cansei de ver vocês copiando e colando código no script do Motion, ora essa! Agora é só digitar sua senha de assinatura em Ferramentas → Automação e eu devolvo o script inteirinho, já com seu endpoint e seus tipos configurados. Rapidinho assim!</li>
+      <li>💬 <b>Uma sala só nossa</b> — abri uma aba de Feedbacks aqui do lado, uma conversa que todo mundo que usa o ChopperVerso vê, tipo um grupo de zap. Quero saber o que vocês acham do app, o que tá faltando, o que eu devo consertar... pode falar à vontade, eu leio tudinho! N-não que eu fique esperando mensagem toda hora, baka!</li>
     </ul>
     <div class="novidades-actions">
       <button class="btn btn-ghost" id="btn-novidades-later">Ver depois</button>
@@ -821,5 +838,6 @@
 <script src="js/congelacoes.js"></script>
 <script src="js/reports.js"></script>
 <script src="js/motion-script.js"></script>
+<script src="js/feedback.js"></script>
 </body>
 </html>

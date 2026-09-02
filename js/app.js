@@ -139,6 +139,7 @@ async function switchTab(tab) {
   activeTab = tab;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.tab-section').forEach(s => s.classList.toggle('active', s.id === `tab-${tab}`));
+  _stopFeedbackPolling(); // só roda enquanto a aba de Feedbacks está aberta
   if (tab === 'inserir')     await renderToday();
   if (tab === 'registros')   await renderRecords();
   if (tab === 'graficos')    await renderCharts();
@@ -146,6 +147,7 @@ async function switchTab(tab) {
   if (tab === 'observacoes')  renderObsCalendar();
   if (tab === 'relatorio')    _defaultRelatorioDates();
   if (tab === 'congelacoes')  await renderCongelacoes();
+  if (tab === 'feedbacks')    _startFeedbackPolling();
 }
 
 document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -1330,7 +1332,7 @@ document.getElementById('modal-nome').addEventListener('click', (e) => {
 // ─ Popup de novidades ───────────────────────────────────────────────────────────
 // Troque a versão sempre que houver um novo aviso — quem já dispensou o anterior
 // verá o novo automaticamente.
-const CHANGELOG_VERSION = '2026-09-02';
+const CHANGELOG_VERSION = '2026-09-02-2';
 
 function openNovidadesModal() {
   document.getElementById('modal-novidades').classList.add('open');
